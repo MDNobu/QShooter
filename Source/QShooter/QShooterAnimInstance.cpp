@@ -121,7 +121,10 @@ void UQShooterAnimInstance::Lean(float deltatTime)
 	CharacterYawLastFrame_Lean = CharacterYaw_Lean;
 	CharacterYaw_Lean = ShooterCharacterCache->GetActorRotation().Yaw;
 
-	const float turnRate = (CharacterYaw_Lean - CharacterYawLastFrame_Lean) / deltatTime;
+
+	
+	/**  */
+	const float turnRate = UKismetMathLibrary::NormalizeAxis(CharacterYaw_Lean - CharacterYawLastFrame_Lean) / deltatTime;
 	const float interp = FMath::FInterpTo(YawOffset_Lean, turnRate, deltatTime, 6.0f);
 
 	//YawOffset_Lean = CharacterYaw_Lean - CharacterYawLastFrame_Lean;
@@ -130,6 +133,8 @@ void UQShooterAnimInstance::Lean(float deltatTime)
 	{
 		GEngine->AddOnScreenDebugMessage(2, -1, FColor::Red,
 			FString::Printf(TEXT("YawOffset_Lean : %f"), YawOffset_Lean));
+		GEngine->AddOnScreenDebugMessage(2, -1, FColor::Red,
+			FString::Printf(TEXT("YawOffset : %f"), CharacterYaw_Lean - CharacterYawLastFrame_Lean));
 	}
 
 }
