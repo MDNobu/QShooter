@@ -43,6 +43,7 @@ AQShooterCharacter::AQShooterCharacter()
 	movementCom->bOrientRotationToMovement = false;
 	movementCom->JumpZVelocity = 600.0f;
 
+	SceneCom4MoveClip = CreateDefaultSubobject<USceneComponent>(TEXT("ScneeComForMoveClip"));
 }
 
 void AQShooterCharacter::IncreaseOverlapItemCount()
@@ -66,6 +67,11 @@ void AQShooterCharacter::BeginPlay()
 	SpawnAndEquipDefaultWeapon();
 
 	AmmoAmountInitial();
+
+#pragma region dataValidation
+	ensure(2 * FireDuration <= AutoFireDuration);
+#pragma endregion
+
 }
 
 void AQShooterCharacter::AimButtonPressed()
@@ -149,7 +155,7 @@ void AQShooterCharacter::Tick(float DeltaTime)
 
 	LineTraceToShowItems();
 
-
+	UpdateClipTransform();
 }
 
 void AQShooterCharacter::UpdateCameraZoom(float deltaTime)
@@ -244,7 +250,7 @@ void AQShooterCharacter::UpdateCrosshairSpeadMultiplier(float deltaTime)
 		CrosshairShootingFactor;
 
 	FString debugMsg = FString::Printf(TEXT("Crosshair Spread Multiplier: %f"), CrosshairShootingFactor);
-	GEngine->AddOnScreenDebugMessage(1, 0.0f, FColor::White, debugMsg);
+	//GEngine->AddOnScreenDebugMessage(1, 0.0f, FColor::White, debugMsg);
 }
 
 // Called to bind functionality to input
@@ -271,6 +277,8 @@ void AQShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	PlayerInputComponent->BindAction(TEXT("SelectButton"), IE_Released, this, &AQShooterCharacter::SelectButtonReleased);
 	
 	PlayerInputComponent->BindAction(TEXT("ThrowWeapon"), IE_Pressed, this, &AQShooterCharacter::DropEquippedWeapon);
+
+	PlayerInputComponent->BindAction(TEXT("Reload"), IE_Pressed, this, &AQShooterCharacter::ReloadButtonPressed);
 }
 
 void AQShooterCharacter::MoveForward(float value)
@@ -317,8 +325,8 @@ void AQShooterCharacter::Lookup(float value)
 	AddControllerPitchInput(value * CurrentMouseLookupRate);
 }
 
-// 现在来看这里的逻辑移动到weapon或许是一个合理的选择，教学视频中没有这么做，先放在这
-void AQShooterCharacter::FireOneBullet()
+
+void AQShooterCharacter::FireOneBulletEffects()
 {
 	if (!EquippedWeapon || !EquippedWeapon->HasAmmo())
 	{
@@ -368,13 +376,14 @@ void AQShooterCharacter::FireOneBullet()
 		characterAnimInstance->Montage_JumpToSection(TEXT("StartFire"));
 	}
 	
-	EquippedWeapon->FireOneBullet();
+	
 
 }
 
 void AQShooterCharacter::EndFireBullet()
 {
 	bIsBulletFiring = false;
+	CombatState = ECombatState::ECS_Unoccupied;
 	UE_LOG(LogTemp, Warning, TEXT("End Firing"));
 }
 
@@ -384,7 +393,6 @@ void AQShooterCharacter::SelectButtonPressed()
 	if (FocusedWeapon )
 	{
 		FocusedWeapon->StartCollectLerping(this);
-		
 	}
 }
 
@@ -397,6 +405,120 @@ void AQShooterCharacter::AmmoAmountInitial()
 {
 	CurAmmoAmounts.Reset();
 	CurAmmoAmounts.Append(AmmoInitAmounts);
+}
+
+bool AQShooterCharacter::DoesEquippedWeaponHasAmmo()
+{
+	return EquippedWeapon && EquippedWeapon->HasAmmo();
+}
+
+
+void AQShooterCharacter::StartReloadWeapon()
+{
+	if (ECombatState::ECS_Unoccupied != GetCombatState())
+		return;
+
+	if (HasSuitableAmmoPack() && !EquippedWeapon->IsClipFull()) //没有ammo pack，则不能reload
+	{
+		CombatState = ECombatState::ECS_Reloading;
+		UAnimInstance* characterAnimInstance = GetMesh()->GetAnimInstance();
+		if (characterAnimInstance && ReloadAnimMontage)
+		{
+			characterAnimInstance->Montage_Play(ReloadAnimMontage);
+			characterAnimInstance->Montage_JumpToSection(TEXT("Reload_SMG"));
+		}
+	}
+}
+
+void AQShooterCharacter::EndReloadWeapon()
+{
+	CombatState = ECombatState::ECS_Unoccupied;
+
+	// Update Current Ammo and weapon ammo
+	if (!EquippedWeapon) 
+		return;
+
+	UE_LOG(LogTemp, Warning, TEXT("Finish Reloading"));
+
+	const EAmmoType ammoType = EquippedWeapon->GetAmmoType();
+
+	const int32 emptySize = EquippedWeapon->GetMagazineCapcity() - EquippedWeapon->GetAmmoAmount();
+	checkf(emptySize >= 0, TEXT("weapon empty size should be >= 0"));
+
+	const int32 playerAmmoAmount =  CurAmmoAmounts[ammoType];
+	UE_LOG(LogTemp, Warning, TEXT("playerAmmoAmount = %d , emptySize = %d"), playerAmmoAmount, emptySize);
+	if (playerAmmoAmount < emptySize)
+	{
+		EquippedWeapon->IncreaseAmmo(playerAmmoAmount);
+		CurAmmoAmounts[ammoType] = 0;
+	}
+	else
+	{
+		EquippedWeapon->IncreaseAmmo(emptySize);
+		//EquippedWeapon->SetAmmoAmount(EquippedWeapon->)
+		CurAmmoAmounts[ammoType] -= emptySize;
+	}
+}
+
+/**
+ * 实现的基本思想是，在handl_l 上attach一个scene component, runtime 时修改clip的transform,使其和scene component一致
+ */
+void AQShooterCharacter::GrabClip()
+{
+	if (nullptr == EquippedWeapon)
+	{
+		return;
+	}
+	
+	
+
+	//const USkeletalMeshSocket* handLBone = GetMesh()->GetSocketByName(TEXT("hand_l"));
+	FAttachmentTransformRules transRules(EAttachmentRule::KeepRelative, true);
+	SceneCom4MoveClip->AttachToComponent(GetMesh(), transRules, TEXT("hand_l"));
+
+	//ClipTransWhenDetached = EquippedWeapon->GetItemMesh()->GetSocketTransform("smg_clip");
+	int32 boneIndex = EquippedWeapon->GetItemMesh()->GetBoneIndex(EquippedWeapon->GetClipName());
+	if (INDEX_NONE == boneIndex)
+	{
+		UE_LOG(LogTemp, Error, 
+			TEXT("Weapon %s cannot find a bone name %s"), *EquippedWeapon->GetFName().ToString(), *EquippedWeapon->GetClipName().ToString());
+		return;
+	}
+	ClipTransWhenDetached = EquippedWeapon->GetItemMesh()->GetBoneTransform(boneIndex);
+	SceneCom4MoveClip->SetWorldTransform(ClipTransWhenDetached);
+
+	bIsClipMoving = true;
+}
+
+void AQShooterCharacter::InsertClip()
+{
+	bIsClipMoving = false;
+}
+
+void AQShooterCharacter::ReloadButtonPressed()
+{
+	StartReloadWeapon();
+}
+
+bool AQShooterCharacter::HasSuitableAmmoPack()
+{
+	bool hasAmmo = false;
+	if (EquippedWeapon)
+	{
+		EAmmoType ammoType = EquippedWeapon->GetAmmoType();
+		if (CurAmmoAmounts.Contains(ammoType))
+		{
+			hasAmmo = CurAmmoAmounts[ammoType] > 0;
+		}
+	}
+	return hasAmmo;
+}
+
+void AQShooterCharacter::UpdateClipTransform()
+{
+	//if (!bIsClipMoving) return;
+
+	
 }
 
 bool AQShooterCharacter::CalBulletTrailEndPointAndIfHitSth(const FTransform& socketTransform, OUT FVector& bulletTrailEndPoint)
@@ -563,52 +685,61 @@ void AQShooterCharacter::SwapWeapon(AQWeapon* targetWeapon)
 
 void AQShooterCharacter::FireButtonPressed()
 {
-	if (!EquippedWeapon) //没有装备武器，不能射击
-	{
-		return; 
-	}
+	bIsFireButtonPressed = true;
+	TryFireWeapon();
 
-	if (EquippedWeapon->HasAmmo())
-	{
-		bIsFireButtonPressed = true;
-		StartFireTimer();
-	}
-	else
-	{
-		// Try to Reload Ammo
-	}
+	// 启动一个timer来自动射击
+	// 这个timer用来处理auto fire的逻辑,要求autofireduration > fireDuration
+	GetWorld()->GetTimerManager().SetTimer(
+		AutoFireTimerHandle, this, &AQShooterCharacter::AutoFireCheckTimer, AutoFireDuration, true);
 }
 
 void AQShooterCharacter::FireButtonReleased()
 {
 	bIsFireButtonPressed = false;
+
+	// 停止自动射击timer
+	GetWorld()->GetTimerManager().ClearTimer(AutoFireTimerHandle);
 }
 
-void AQShooterCharacter::StartFireTimer()
+void AQShooterCharacter::TryFireWeapon()
 {
-	if (bIsBulletFiring)
+	if ( (nullptr == EquippedWeapon) ||
+		(ECombatState::ECS_Unoccupied != GetCombatState()))
+	{
 		return;
-	bIsBulletFiring = true;
+	}
+	
+	
+	if (EquippedWeapon->HasAmmo())
+	{
+		CombatState = ECombatState::ECS_FireInProgress;
+		FireOneBulletEffects();
+		EquippedWeapon->FireOneBullet();
 
-	FireOneBullet();
-
-	// 设置timer 调用end fire用来处理射击间隔
-	GetWorld()->GetTimerManager().SetTimer(EndBulletFireTimerHandle, this, &AQShooterCharacter::EndFireBullet
-		, FireDuration, false);
-
-	// 这个timer用来处理auto fire的逻辑,要求autofireduration > fireDuration
-	GetWorld()->GetTimerManager().SetTimer(
-		AutoFireTimerHandle, this, &AQShooterCharacter::AutoFireTimer, AutoFireDuration, false);
+		// 设置timer 调用end fire用来处理射击间隔
+		GetWorld()->GetTimerManager().SetTimer(EndBulletFireTimerHandle, this, &AQShooterCharacter::EndFireBullet
+			, FireDuration, false);
+	}
+	else
+	{
+		StartReloadWeapon();
+	}
+	
 }
 
-void AQShooterCharacter::AutoFireTimer()
+void AQShooterCharacter::AutoFireCheckTimer()
 {
 	UE_LOG(LogTemp, Warning, TEXT("End Firing"));
 	
-	bool isEquipedWeaponHasAmmo = EquippedWeapon && EquippedWeapon->HasAmmo();
+	/*bool isEquipedWeaponHasAmmo = EquippedWeapon && EquippedWeapon->HasAmmo();
 	if (bIsFireButtonPressed && isEquipedWeaponHasAmmo)
 	{
-		StartFireTimer();
+		FireWeapon();
+	}*/
+	if (bIsFireButtonPressed)
+	{
+		TryFireWeapon();
 	}
 }
 

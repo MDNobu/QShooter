@@ -139,4 +139,16 @@ private:
 
 
 	float ItemCameraYawOffset = 40.0f;
+
+	/** sound played when picked up */
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	class USoundCue* PickupSound = nullptr;
+
+	/** 装备武器时用的sound */
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USoundCue* EquipSound = nullptr;
+
+public:
+
+	FORCEINLINE USoundCue* GetEquipSound() const { return EquipSound; }
 };

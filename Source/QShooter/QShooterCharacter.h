@@ -4,15 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "AmmoType.h"
 #include "QShooterCharacter.generated.h"
 
-UENUM(BlueprintType)
-enum class EAmmoType : uint8
-{
-	EAT_9mm UMETA(DisplayName = "9mm"),
-	EAT_AR UMETA(DisplayName = "AR"),
 
-	EAT_MAX  UMETA(DisplayName = "MAX", Hidden)
+UENUM(BlueprintType)
+enum class ECombatState : uint8
+{
+	ECS_Unoccupied UMETA(DisplayName = "Unoccupied"),  //未射击的状态，可以进入到下面两个状态中
+	ECS_FireInProgress UMETA(DisplayName = "FireInProgress"), // 正在射击的状态，只能到unoccupied
+	ECS_Reloading UMETA(DisplayName = "Reloading"),  //正在reload, 只能到unoccupied
+
+	ECS_MAX  UMETA(DisplayName = "MAX", Hidden)
 };
 
 
@@ -27,6 +30,7 @@ public:
 
 	void IncreaseOverlapItemCount();
 	void DecreaseOverlapItemCount();
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -62,16 +66,28 @@ public:
 
 	FORCEINLINE class UCameraComponent* GetFollowCamera() { return FollowCamera; };
 
+	/**  must be called after HasSuitableAmmoPack */
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void EndReloadWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void GrabClip();
+	
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void InsertClip();
+
+
+	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
 protected:
 
 	void FireButtonPressed();
 	void FireButtonReleased();
 
-	void StartFireTimer();
-	void AutoFireTimer();
+	/** 进行射击，可以是不停点击射击的点射调用的 或者按住射击键的连射调用的 */
+	void TryFireWeapon();
+	void AutoFireCheckTimer();
 
 	void EndFireBullet();
-
 
 
 private:
@@ -98,9 +114,10 @@ private:
 	void Lookup(float value);
 
 	/**
-	 * 开一发枪的逻辑，包括特效、生效的spawn等等
+	 * 开一发枪的表现相关的逻辑，包括特效、生效的spawn等等
+	 * 现在来看这里的逻辑移动到weapon或许是一个合理的选择，教学视频中没有这么做，先放在这
 	 */
-	void FireOneBullet();
+	void FireOneBulletEffects();
 
 	//void EndFireBullet();
 
@@ -128,6 +145,16 @@ private:
 	void SelectButtonPressed();
 	void SelectButtonReleased();
 	void AmmoAmountInitial();
+
+	bool DoesEquippedWeaponHasAmmo();
+
+	void StartReloadWeapon();
+	
+
+	void ReloadButtonPressed();
+	bool HasSuitableAmmoPack();
+	/** 更新clip的位置，主要是处理换弹夹时clip的位置随手而移动的问题 */
+	void UpdateClipTransform();
 private:
 
 #pragma region Keyboard CameraRotateRateParams
@@ -194,6 +221,9 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class UAnimMontage* FireAnimMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UAnimMontage* ReloadAnimMontage = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	UParticleSystem* ImpactHitFX = nullptr;
@@ -264,4 +294,20 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true, ToolTip = "ammo initial amount"))
 	TMap<EAmmoType, int32> AmmoInitAmounts;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	ECombatState CombatState = ECombatState::ECS_Unoccupied;
+
+#pragma region VariableForMoveClip
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	bool bIsClipMoving = false;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USceneComponent* SceneCom4MoveClip = nullptr;
+
+	FTransform ClipTransWhenDetached;
+
+#pragma endregion
+
+
 };

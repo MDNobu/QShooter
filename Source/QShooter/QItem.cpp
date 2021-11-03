@@ -9,6 +9,8 @@
 #include "QWeapon.h"
 #include "Curves/CurveFloat.h"
 #include "Camera/CameraComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 
 // Sets default values
 AQItem::AQItem() 
@@ -197,6 +199,12 @@ void AQItem::StartCollectLerping(AQShooterCharacter* character)
 
 	ItemState = EQItemState::EIS_EquipInterping;
 	SetItemProperties(ItemState);
+
+	// Play Collect Sound
+	if (PickupSound)
+	{
+		UGameplayStatics::PlaySound2D(this, PickupSound);
+	}
 
 	GetWorld()->GetTimerManager().SetTimer(CollectLerpEndHandle, this, &AQItem::EndCollectLerping, CollectAnimDuraction);
 }

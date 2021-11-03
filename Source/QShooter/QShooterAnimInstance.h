@@ -21,9 +21,10 @@ public:
 	void UpdateAnimProperties(float deltatTime);
 
 private:
-
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class AQShooterCharacter* ShooterCharacterCache;
 
+	void TurnInPlace();
 private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float Speed = 0.0f;
@@ -45,4 +46,24 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	bool bIsAimming = false;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float AimPitch = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	bool bIsReloading = false;
+#pragma region Variables4Turn
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float CharacterYawLastFrame = 0;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float CharacterYaw = 0;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float RootYawOffset = 0.0f;
+
+	float RotationCuveValue = 0.0f;
+	float RotationCurveValueLastFrame = 0.0f;
+#pragma endregion
+
 };

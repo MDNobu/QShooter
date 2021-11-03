@@ -6,10 +6,18 @@
 #include "Components/WidgetComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 
 AQWeapon::AQWeapon()
 {
 
+}
+
+void AQWeapon::IncreaseAmmo(int32 ammoDelta)
+{
+	ensureMsgf(ammoDelta >= 0 && ammoDelta <= MagazineCapcity, TEXT("ammoDelta is not legal"));
+	AmmoAmount += ammoDelta;
 }
 
 void AQWeapon::FireOneBullet()
@@ -18,7 +26,19 @@ void AQWeapon::FireOneBullet()
 	{
 		return;
 	}
-	AmmoAmount--;
+	SetAmmoAmount(AmmoAmount- 1);
+}
+
+bool AQWeapon::IsClipFull() const
+{
+	return AmmoAmount == MagazineCapcity;
+}
+
+void AQWeapon::BeginPlay()
+{
+	Super::BeginPlay();
+
+	ensureMsgf(AmmoAmount <= MagazineCapcity, TEXT("AmmoAmount must be <= MagazineCapcity"));
 }
 
 void AQWeapon::SetToEquipped()
@@ -29,6 +49,11 @@ void AQWeapon::SetToEquipped()
 
 	ItemState = EQItemState::EIS_Equipped;*/
 	SetItemState(EQItemState::EIS_Equipped);
+
+	if (USoundCue* euipSound = GetEquipSound())
+	{
+		UGameplayStatics::PlaySound2D(this, euipSound);
+	}
 }
 
 void AQWeapon::ThrowWeapon()
