@@ -6,6 +6,19 @@
 #include "Animation/AnimInstance.h"
 #include "QShooterAnimInstance.generated.h"
 
+/** AimOffset state 主要是为了表示当前动画aim offset的状态，以在ABP中用不同的动画 */
+UENUM(BlueprintType)
+enum class EAimOffsetState : uint8
+{
+	EAOS_Reloading UMETA(DisplayName = "Reloading"),  //不用AimOffset动画
+	EAOS_Aiming UMETA(DisplayName = "Aiming"),  //aim状态，用aimOffset_Aim 动画
+	EAOS_InAir UMETA(DisplayName = "InAir"),  //在地上的普通状态，用AimOffset_Hip动画，但只有pitch输入
+	EAOS_Hip UMETA(DisplayName = "Hip"),  //在地上的普通状态，用AimOffset_Hip动画
+
+	EAOS_MAX  UMETA(DisplayName = "MAX", Hidden)
+};
+
+
 /**
  * 
  */
@@ -25,6 +38,7 @@ private:
 	class AQShooterCharacter* ShooterCharacterCache;
 
 	void TurnInPlace();
+	void Lean(float deltatTime);
 private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float Speed = 0.0f;
@@ -52,18 +66,32 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	bool bIsReloading = false;
-#pragma region Variables4Turn
+#pragma region TurnParams
+	/** TIP指的是turn in place， */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
-	float CharacterYawLastFrame = 0;
-
+	float CharacterYawLastFrame_TIP = 0;
+	/** TIP指的是turn in place， */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
-	float CharacterYaw = 0;
+	float CharacterYaw_TIP = 0;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float RootYawOffset = 0.0f;
 
 	float RotationCuveValue = 0.0f;
 	float RotationCurveValueLastFrame = 0.0f;
+#pragma endregion
+
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	EAimOffsetState AimOffsetState = EAimOffsetState::EAOS_Hip;
+
+#pragma region LeanParams
+
+	float CharacterYaw_Lean = 0;
+	float CharacterYawLastFrame_Lean = 0;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float YawOffset_Lean = 0;
 #pragma endregion
 
 };
