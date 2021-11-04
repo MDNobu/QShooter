@@ -14,7 +14,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "QItem.h"
 #include "QWeapon.h"
-
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AQShooterCharacter::AQShooterCharacter()
@@ -26,7 +26,7 @@ AQShooterCharacter::AQShooterCharacter()
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 300.0f;
 	CameraBoom->bUsePawnControlRotation = true;
-	CameraBoom->SocketOffset = FVector(0.0f, 50.0f, 50.0f);
+	CameraBoom->SocketOffset = FVector(0.0f, 50.0f, 45.0f);
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	// 注意
@@ -61,8 +61,9 @@ void AQShooterCharacter::Jump()
 	Super::Jump();
 	if (bIsCrouching)
 	{
-		bIsCrouching = false; // Jump之后不再crouch
-		GetCharacterMovement()->MaxWalkSpeed = BaseMaxWalkSpeed;
+		//bIsCrouching = false; // Jump之后不再crouch
+		//GetCharacterMovement()->MaxWalkSpeed = BaseMaxWalkSpeed;
+		ToggleCrouch();
 	}
 }
 
@@ -166,6 +167,8 @@ void AQShooterCharacter::Tick(float DeltaTime)
 	LineTraceToShowItems();
 
 	UpdateClipTransform();
+
+	UpdateCapsuleHalfHeight(DeltaTime);
 }
 
 void AQShooterCharacter::UpdateCameraZoom(float deltaTime)
@@ -289,10 +292,10 @@ void AQShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	PlayerInputComponent->BindAction(TEXT("ThrowWeapon"), IE_Pressed, this, &AQShooterCharacter::DropEquippedWeapon);
 
 	PlayerInputComponent->BindAction(TEXT("Reload"), IE_Pressed, this, &AQShooterCharacter::ReloadButtonPressed);
-	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AQShooterCharacter::CrouchButtonPressed);
+	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AQShooterCharacter::ToggleCrouch);
 }
 
-void AQShooterCharacter::CrouchButtonPressed()
+void AQShooterCharacter::ToggleCrouch()
 {
 	if (GetCharacterMovement()->IsFalling()) // 在空中时不能crouch
 	{
@@ -302,10 +305,12 @@ void AQShooterCharacter::CrouchButtonPressed()
 	if (bIsCrouching)
 	{
 		GetCharacterMovement()->MaxWalkSpeed = CrouchMaxWalkSpeed;
+		GetCharacterMovement()->GroundFriction = CrouchGroundFirction;
 	}
 	else
 	{
 		GetCharacterMovement()->MaxWalkSpeed = BaseMaxWalkSpeed;
+		GetCharacterMovement()->GroundFriction = BaseGroundFirction;
 	}
 }
 
@@ -546,6 +551,26 @@ void AQShooterCharacter::UpdateClipTransform()
 	//if (!bIsClipMoving) return;
 
 	
+}
+
+void AQShooterCharacter::UpdateCapsuleHalfHeight(float DeltaTime)
+{
+	const float target = bIsCrouching ? CrouchCapsuleHalfHeight : BaseCapsuleHalfHeight;
+	const float curHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+	const float resHalfHeight = FMath::FInterpTo(curHalfHeight, target, DeltaTime, 20.0f);
+	GetCapsuleComponent()->SetCapsuleHalfHeight(resHalfHeight);
+
+	// 注意，上面将capsule height 改变之后,capsule的z是正确的贴合地面的，但是动画的基准（mesh component）却不是贴合地面的，这里需要修正
+	const float deltaHalfHeight = resHalfHeight - curHalfHeight;
+	const FVector deltaVector = FVector(0.0f, 0.0f, -deltaHalfHeight); 
+	GetMesh()->AddLocalOffset(deltaVector);
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(1, -1, FColor::Red,
+			FString::Printf(TEXT("delta z: %f"), deltaHalfHeight));
+	}
 }
 
 bool AQShooterCharacter::CalBulletTrailEndPointAndIfHitSth(const FTransform& socketTransform, OUT FVector& bulletTrailEndPoint)

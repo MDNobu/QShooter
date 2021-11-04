@@ -99,7 +99,7 @@ protected:
 
 
 private:
-	void CrouchButtonPressed();
+	void ToggleCrouch();
 
 
 	void MoveForward(float value);
@@ -160,6 +160,9 @@ private:
 	bool HasSuitableAmmoPack();
 	/** 更新clip的位置，主要是处理换弹夹时clip的位置随手而移动的问题 */
 	void UpdateClipTransform();
+
+	/** 根据crouch 与否，lerp capsule half height */
+	void UpdateCapsuleHalfHeight(float DeltaTime);
 private:
 
 
@@ -321,6 +324,7 @@ private:
 
 #pragma endregion
 
+#pragma region Params4CrouchOrNot
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	bool bIsCrouching = false;
 
@@ -329,4 +333,21 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float CrouchMaxWalkSpeed = 300.0f;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float BaseGroundFirction = 8.0f;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float CrouchGroundFirction = 16.0f;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float BaseCapsuleHalfHeight = 88.0f;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float CrouchCapsuleHalfHeight = 44.0f;
+#pragma endregion
+
+
+	
+
 };
