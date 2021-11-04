@@ -15,6 +15,7 @@
 #include "QItem.h"
 #include "QWeapon.h"
 #include "Components/CapsuleComponent.h"
+#include "QAmmo.h"
 
 // Sets default values
 AQShooterCharacter::AQShooterCharacter()
@@ -109,6 +110,31 @@ void AQShooterCharacter::StopAim()
 	}
 }
 
+void AQShooterCharacter::CollectAmmo(AQAmmo* ammo)
+{
+#pragma region UpdatePlayerAmmo
+	int32 targetTypeAmmoAmount = 0;
+	const int32* pAmmoAmount = CurAmmoAmounts.Find(ammo->GetAmmoType());
+	if (pAmmoAmount)
+	{
+		targetTypeAmmoAmount = *pAmmoAmount;
+	}
+	const int32 resAmmoAmount = targetTypeAmmoAmount + ammo->GetItemAmount();
+	CurAmmoAmounts.Add(ammo->GetAmmoType(), resAmmoAmount);
+#pragma endregion
+
+#pragma region ReloadIfEquipWeaponIsEmpty
+	const bool euipWeaponIsEmpty = EquippedWeapon && (0 == EquippedWeapon->GetAmmoAmount());
+	const bool isSameType = ammo->GetAmmoType() == EquippedWeapon->GetAmmoType();
+	if (euipWeaponIsEmpty && isSameType) //Equipped Weapon is empty
+	{
+		StartReloadWeapon();
+	}
+#pragma endregion
+
+	ammo->Destroy();
+}
+
 float AQShooterCharacter::GetCrosshairSpeadMultiplier() const
 {
 	return CrosshairSpeadMultiplier;
@@ -154,10 +180,22 @@ void AQShooterCharacter::CollectItem(AQItem* toCollectItem)
 	if (!toCollectItem)
 		return;
 
+	
+
 	if (AQWeapon* weapon = Cast<AQWeapon>(toCollectItem))
 	{
 		SwapWeapon(weapon);
 	}
+	else if (AQAmmo* ammo = Cast<AQAmmo>(toCollectItem))
+	{
+		CollectAmmo(ammo);
+	}
+	else
+	{
+		// #TODO collect item logic
+		UE_LOG(LogTemp, Warning, TEXT("Item %s is collected"), *toCollectItem->GetFName().ToString())
+	}
+
 }
 
 // Called every frame
@@ -438,9 +476,9 @@ void AQShooterCharacter::EndFireBullet()
 void AQShooterCharacter::SelectButtonPressed()
 {
 	//DropEquippedWeapon();
-	if (FocusedWeapon )
+	if (FocusedItem )
 	{
-		FocusedWeapon->StartCollectLerping(this);
+		FocusedItem->StartCollectLerping(this);
 	}
 }
 
@@ -703,7 +741,7 @@ void AQShooterCharacter::LineTraceToShowItems()
 		return;
 
 	//重置focus结果，trace有结果后赋值
-	FocusedWeapon = nullptr;
+	FocusedItem = nullptr;
 
 	FHitResult itemTraceRes;
 	LineTraceFromCrosshair(itemTraceRes);
@@ -712,12 +750,13 @@ void AQShooterCharacter::LineTraceToShowItems()
 		AQItem* item = Cast<AQItem>(itemTraceRes.GetActor());
 		if (item)
 		{
+			FocusedItem = item;
 			item->ShowItem();
 		}
-		if (AQWeapon* weapon = Cast<AQWeapon>(item))
-		{
-			FocusedWeapon = weapon;
-		}
+		//if (AQWeapon* weapon = Cast<AQWeapon>(item))
+		//{
+		//	FocusedItem = weapon;
+		//}
 	}
 }
 

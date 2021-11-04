@@ -168,6 +168,7 @@ private:
 
 	void StartAim();
 	void StopAim();
+	void CollectAmmo(class AQAmmo* ammo);
 private:
 
 
@@ -296,7 +297,7 @@ private:
 	AQWeapon* EquippedWeapon = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
-	AQWeapon* FocusedWeapon = nullptr;
+	AQItem* FocusedItem = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	TSubclassOf<AQWeapon> DefaulWeaponClass;
@@ -312,6 +313,7 @@ private:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float CameraLerpPointDeltaZ = 50.0f;
 
+	/** 角色身上装的弹药,不包括当前武器中的 */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	TMap<EAmmoType, int32> CurAmmoAmounts;
 

@@ -55,7 +55,7 @@ public:
 
 	FORCEINLINE USkeletalMeshComponent* GetItemMesh() const { return ItemMeshComponent; };
 protected:
-	void SetItemProperties(EQItemState targetItemState);
+	virtual void SetItemProperties(EQItemState targetItemState);
 	void SetItemState(EQItemState targetItemState);
 
 private:
@@ -74,6 +74,8 @@ private:
 
 	void CollectLerping(float deltaTime);
 protected:
+
+#pragma region Components
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	/** 用来line trace以显示UI Widget, 角色是否line trace和ItemTriggerBox相关 */
 	class UBoxComponent* ItemWidgetVisibilityBox = nullptr;
@@ -83,17 +85,20 @@ protected:
 	class USphereComponent* ItemTriggerSphere = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
-	EQItemState ItemState = EQItemState::EIS_ToPickUp;
-
-	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	/** 用skeletal mesh是因为武器通常是skeletal mesh */
 	USkeletalMeshComponent* ItemMeshComponent = nullptr;
-private:
 
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Shooter", meta = (AllowPrivateAccess = true))
 	class UWidgetComponent* ItemWidgetComponent = nullptr;
+#pragma endregion
+
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	EQItemState ItemState = EQItemState::EIS_ToPickUp;
+private:
+
+
 
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
@@ -149,6 +154,10 @@ private:
 	USoundCue* EquipSound = nullptr;
 
 public:
-
+#pragma region GetterAndSetter
 	FORCEINLINE USoundCue* GetEquipSound() const { return EquipSound; }
+	FORCEINLINE int32 GetItemAmount() const { return ItemAmount; }
+#pragma endregion
+
+
 };
