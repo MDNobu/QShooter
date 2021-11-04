@@ -42,6 +42,7 @@ protected:
 	void AimButtonPressed();
 	void AimButtonReleased();
 
+
 	
 
 public:	
@@ -163,6 +164,10 @@ private:
 
 	/** 根据crouch 与否，lerp capsule half height */
 	void UpdateCapsuleHalfHeight(float DeltaTime);
+
+
+	void StartAim();
+	void StopAim();
 private:
 
 
@@ -256,6 +261,9 @@ private:
 
 	float CameraCurrenFOV = 0.0f;
 
+
+	bool bIsAimButtonPressed = false;
+	/** 注意AimButtonPress为true，不一定IsAim为true */
 	bool bIsAimming = false;
 
 	/** 表示当前是否有子弹正在fire,主要用来射击时 crosshair的缩放 */
@@ -346,6 +354,7 @@ private:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float CrouchCapsuleHalfHeight = 44.0f;
 #pragma endregion
+
 
 
 	

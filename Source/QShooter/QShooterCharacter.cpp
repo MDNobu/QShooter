@@ -87,12 +87,26 @@ void AQShooterCharacter::BeginPlay()
 
 void AQShooterCharacter::AimButtonPressed()
 {
-	bIsAimming = true;
+	bIsAimButtonPressed = true;
+	if (CombatState != ECombatState::ECS_Reloading) //Reloading时不能aim
+	{
+		StartAim();
+	}
 }
 
 void AQShooterCharacter::AimButtonReleased()
 {
+	bIsAimButtonPressed = false;
+	StopAim();
+}
+
+void AQShooterCharacter::StopAim()
+{
 	bIsAimming = false;
+	if (!bIsCrouching)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = BaseMaxWalkSpeed;
+	}
 }
 
 float AQShooterCharacter::GetCrosshairSpeadMultiplier() const
@@ -454,6 +468,11 @@ void AQShooterCharacter::StartReloadWeapon()
 
 	if (HasSuitableAmmoPack() && !EquippedWeapon->IsClipFull()) //没有ammo pack，则不能reload
 	{
+		if (bIsAimming) 
+		{
+			StopAim();
+		}
+
 		CombatState = ECombatState::ECS_Reloading;
 		UAnimInstance* characterAnimInstance = GetMesh()->GetAnimInstance();
 		if (characterAnimInstance && ReloadAnimMontage)
@@ -468,18 +487,19 @@ void AQShooterCharacter::EndReloadWeapon()
 {
 	CombatState = ECombatState::ECS_Unoccupied;
 
-	// Update Current Ammo and weapon ammo
+	
 	if (!EquippedWeapon) 
 		return;
 
-	UE_LOG(LogTemp, Warning, TEXT("Finish Reloading"));
-
+	//UE_LOG(LogTemp, Warning, TEXT("Finish Reloading"));
+	// Update Current Ammo and weapon ammo
+#pragma region Update Current Ammo and weapon ammo
 	const EAmmoType ammoType = EquippedWeapon->GetAmmoType();
 
 	const int32 emptySize = EquippedWeapon->GetMagazineCapcity() - EquippedWeapon->GetAmmoAmount();
 	checkf(emptySize >= 0, TEXT("weapon empty size should be >= 0"));
 
-	const int32 playerAmmoAmount =  CurAmmoAmounts[ammoType];
+	const int32 playerAmmoAmount = CurAmmoAmounts[ammoType];
 	UE_LOG(LogTemp, Warning, TEXT("playerAmmoAmount = %d , emptySize = %d"), playerAmmoAmount, emptySize);
 	if (playerAmmoAmount < emptySize)
 	{
@@ -489,8 +509,13 @@ void AQShooterCharacter::EndReloadWeapon()
 	else
 	{
 		EquippedWeapon->IncreaseAmmo(emptySize);
-		//EquippedWeapon->SetAmmoAmount(EquippedWeapon->)
 		CurAmmoAmounts[ammoType] -= emptySize;
+	}
+#pragma endregion
+
+	if (bIsAimButtonPressed)
+	{
+		StartAim();
 	}
 }
 
@@ -571,6 +596,12 @@ void AQShooterCharacter::UpdateCapsuleHalfHeight(float DeltaTime)
 		GEngine->AddOnScreenDebugMessage(1, -1, FColor::Red,
 			FString::Printf(TEXT("delta z: %f"), deltaHalfHeight));
 	}
+}
+
+void AQShooterCharacter::StartAim()
+{
+	bIsAimming = true;
+	GetCharacterMovement()->MaxWalkSpeed = CrouchMaxWalkSpeed; // 这里只是想要一个比BaseSpeed小的数值，用CrouchMaxSpeed是图方便
 }
 
 bool AQShooterCharacter::CalBulletTrailEndPointAndIfHitSth(const FTransform& socketTransform, OUT FVector& bulletTrailEndPoint)
