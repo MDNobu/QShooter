@@ -56,6 +56,16 @@ void AQShooterCharacter::DecreaseOverlapItemCount()
 	OverlapItemCount--;
 }
 
+void AQShooterCharacter::Jump()
+{
+	Super::Jump();
+	if (bIsCrouching)
+	{
+		bIsCrouching = false; // Jump之后不再crouch
+		GetCharacterMovement()->MaxWalkSpeed = BaseMaxWalkSpeed;
+	}
+}
+
 // Called when the game starts or when spawned
 void AQShooterCharacter::BeginPlay()
 {
@@ -265,7 +275,7 @@ void AQShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AQShooterCharacter::Turn);
 	PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &AQShooterCharacter::Lookup);
 
-	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &AQShooterCharacter::JumpButtonPressed);
+	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &AQShooterCharacter::Jump);
 	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Released, this, &ACharacter::StopJumping);
 	PlayerInputComponent->BindAction(TEXT("AimButton"), IE_Pressed, this, &AQShooterCharacter::AimButtonPressed);
 	PlayerInputComponent->BindAction(TEXT("AimButton"), IE_Released, this, &AQShooterCharacter::AimButtonReleased);
@@ -284,17 +294,21 @@ void AQShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 void AQShooterCharacter::CrouchButtonPressed()
 {
-	if (!GetCharacterMovement()->IsFalling())
+	if (GetCharacterMovement()->IsFalling()) // 在空中时不能crouch
 	{
-		bIsCrouching = !bIsCrouching;
+		return;
+	}
+	bIsCrouching = !bIsCrouching;
+	if (bIsCrouching)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = CrouchMaxWalkSpeed;
+	}
+	else
+	{
+		GetCharacterMovement()->MaxWalkSpeed = BaseMaxWalkSpeed;
 	}
 }
 
-void AQShooterCharacter::JumpButtonPressed()
-{
-	bIsCrouching = false; // Jump之后不再crouch
-	Jump();
-}
 
 void AQShooterCharacter::MoveForward(float value)
 {

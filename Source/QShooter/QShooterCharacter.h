@@ -31,6 +31,9 @@ public:
 	void IncreaseOverlapItemCount();
 	void DecreaseOverlapItemCount();
 	
+
+	void Jump() override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -98,7 +101,6 @@ protected:
 private:
 	void CrouchButtonPressed();
 
-	void JumpButtonPressed();
 
 	void MoveForward(float value);
 	void MoveRight(float value);
@@ -321,4 +323,10 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	bool bIsCrouching = false;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float BaseMaxWalkSpeed = 650.0f;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float CrouchMaxWalkSpeed = 300.0f;
 };
