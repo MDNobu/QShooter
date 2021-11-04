@@ -76,8 +76,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "QShooter")
 	void InsertClip();
 
-
+#pragma region GetAnSetters
 	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
+	FORCEINLINE bool GetIsCrouching() const { return bIsCrouching; }
+#pragma endregion
+
+
+
 protected:
 
 	void FireButtonPressed();
@@ -91,11 +96,9 @@ protected:
 
 
 private:
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = true))
-	class USpringArmComponent* CameraBoom  = nullptr;
+	void CrouchButtonPressed();
 
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = true, ClampMax = 12.00))
-	class UCameraComponent* FollowCamera = nullptr;
+	void JumpButtonPressed();
 
 	void MoveForward(float value);
 	void MoveRight(float value);
@@ -156,6 +159,13 @@ private:
 	/** 更新clip的位置，主要是处理换弹夹时clip的位置随手而移动的问题 */
 	void UpdateClipTransform();
 private:
+
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = true))
+	class USpringArmComponent* CameraBoom = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = true, ClampMax = 12.00))
+	class UCameraComponent* FollowCamera = nullptr;
 
 #pragma region Keyboard CameraRotateRateParams
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
@@ -309,5 +319,6 @@ private:
 
 #pragma endregion
 
-
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	bool bIsCrouching = false;
 };

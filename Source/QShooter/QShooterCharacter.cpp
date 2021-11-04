@@ -265,7 +265,7 @@ void AQShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AQShooterCharacter::Turn);
 	PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &AQShooterCharacter::Lookup);
 
-	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &AQShooterCharacter::JumpButtonPressed);
 	PlayerInputComponent->BindAction(TEXT("Jump"), IE_Released, this, &ACharacter::StopJumping);
 	PlayerInputComponent->BindAction(TEXT("AimButton"), IE_Pressed, this, &AQShooterCharacter::AimButtonPressed);
 	PlayerInputComponent->BindAction(TEXT("AimButton"), IE_Released, this, &AQShooterCharacter::AimButtonReleased);
@@ -279,6 +279,21 @@ void AQShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	PlayerInputComponent->BindAction(TEXT("ThrowWeapon"), IE_Pressed, this, &AQShooterCharacter::DropEquippedWeapon);
 
 	PlayerInputComponent->BindAction(TEXT("Reload"), IE_Pressed, this, &AQShooterCharacter::ReloadButtonPressed);
+	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AQShooterCharacter::CrouchButtonPressed);
+}
+
+void AQShooterCharacter::CrouchButtonPressed()
+{
+	if (!GetCharacterMovement()->IsFalling())
+	{
+		bIsCrouching = !bIsCrouching;
+	}
+}
+
+void AQShooterCharacter::JumpButtonPressed()
+{
+	bIsCrouching = false; // Jump之后不再crouch
+	Jump();
 }
 
 void AQShooterCharacter::MoveForward(float value)
@@ -469,8 +484,6 @@ void AQShooterCharacter::GrabClip()
 	{
 		return;
 	}
-	
-	
 
 	//const USkeletalMeshSocket* handLBone = GetMesh()->GetSocketByName(TEXT("hand_l"));
 	FAttachmentTransformRules transRules(EAttachmentRule::KeepRelative, true);
@@ -650,7 +663,7 @@ void AQShooterCharacter::SpawnAndEquipDefaultWeapon()
 
 void AQShooterCharacter::EquipWeapon(AQWeapon* newWeapon)
 {
-	newWeapon->SetToEquipped();
+	newWeapon->SetToEquipped(this);
 
 	const USkeletalMeshSocket* rightHandleSocket = GetMesh()->GetSocketByName(FName(TEXT("right_hand_socket")));
 	ensure(rightHandleSocket);

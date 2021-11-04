@@ -66,15 +66,33 @@ void UQShooterAnimInstance::UpdateAnimProperties(float deltatTime)
 	}
 #pragma endregion
 
+	bIsCrouch = ShooterCharacterCache->GetIsCrouching();
 
-	TurnInPlace();
+	bool isTurning = TurnInPlace();
 	Lean(deltatTime);
+
+
+#pragma region UpdateRecoilWeight
+	RecoilWeight = 0.9f;// Reset to default
+	if (isTurning)
+	{
+		RecoilWeight = 0.1f;
+	}
+	else if (bIsAimming)
+	{
+		RecoilWeight = 1.0f;
+	} else if (bIsCrouch)
+	{
+		RecoilWeight = 0.5f;
+	} 
+#pragma endregion
 }
 
-void UQShooterAnimInstance::TurnInPlace()
+bool UQShooterAnimInstance::TurnInPlace()
 {
+	bool isTurning = false;
 	if (nullptr == ShooterCharacterCache)
-		return;
+		return isTurning;
 
 	if (Speed > 0 || bIsInAir)// Speed > 0，即角色在移动时，不进行in place转身动画
 	{
@@ -104,13 +122,11 @@ void UQShooterAnimInstance::TurnInPlace()
 			RootYawOffset = RootYawOffset > 0 ? RootYawOffset - deltaRotation : RootYawOffset + deltaRotation;
 			RootYawOffset = UKismetMathLibrary::ClampAngle(RootYawOffset, -90.0f, 90.0f);
 		}
+		isTurning = turning > 0;
 	}
-	
-
 	//GEngine->AddOnScreenDebugMessage(1, -1, FColor::Blue,
-	//	FString::Printf(TEXT("CharacterYaw : %f"), CharacterYaw_TIP));
-	GEngine->AddOnScreenDebugMessage(1, -1, FColor::Blue,
-		FString::Printf(TEXT("RootYawOffset : %f"), RootYawOffset));
+	//	FString::Printf(TEXT("RootYawOffset : %f"), RootYawOffset));
+	return isTurning;
 }
 
 void UQShooterAnimInstance::Lean(float deltatTime)
@@ -129,13 +145,13 @@ void UQShooterAnimInstance::Lean(float deltatTime)
 
 	//YawOffset_Lean = CharacterYaw_Lean - CharacterYawLastFrame_Lean;
 	YawOffset_Lean = FMath::Clamp(interp, -90.0f, 90.0f);
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(2, -1, FColor::Red,
-			FString::Printf(TEXT("YawOffset_Lean : %f"), YawOffset_Lean));
-		GEngine->AddOnScreenDebugMessage(2, -1, FColor::Red,
-			FString::Printf(TEXT("YawOffset : %f"), CharacterYaw_Lean - CharacterYawLastFrame_Lean));
-	}
+	//if (GEngine)
+	//{
+	//	GEngine->AddOnScreenDebugMessage(2, -1, FColor::Red,
+	//		FString::Printf(TEXT("YawOffset_Lean : %f"), YawOffset_Lean));
+	//	GEngine->AddOnScreenDebugMessage(2, -1, FColor::Red,
+	//		FString::Printf(TEXT("YawOffset : %f"), CharacterYaw_Lean - CharacterYawLastFrame_Lean));
+	//}
 
 }
 

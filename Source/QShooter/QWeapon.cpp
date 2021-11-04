@@ -8,6 +8,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
+#include "QShooterCharacter.h"
 
 AQWeapon::AQWeapon()
 {
@@ -41,13 +42,11 @@ void AQWeapon::BeginPlay()
 	ensureMsgf(AmmoAmount <= MagazineCapcity, TEXT("AmmoAmount must be <= MagazineCapcity"));
 }
 
-void AQWeapon::SetToEquipped()
+void AQWeapon::SetToEquipped(AQShooterCharacter* player)
 {
-	/** 被装备状态下，武器忽略所有碰撞 */
-	/*ItemTriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
-	ItemWidgetVisibilityBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	ensureMsgf(player, TEXT("Playe should not be null "));
+	PlayerEuipThis = player;
 
-	ItemState = EQItemState::EIS_Equipped;*/
 	SetItemState(EQItemState::EIS_Equipped);
 
 	if (USoundCue* euipSound = GetEquipSound())

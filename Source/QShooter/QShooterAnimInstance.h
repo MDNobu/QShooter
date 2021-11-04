@@ -37,7 +37,8 @@ private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class AQShooterCharacter* ShooterCharacterCache;
 
-	void TurnInPlace();
+	/** 返回值表示当前是否在转身*/
+	bool TurnInPlace();
 	void Lean(float deltatTime);
 private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
@@ -93,5 +94,12 @@ private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float YawOffset_Lean = 0;
 #pragma endregion
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	bool bIsCrouch = false;
+
+	/**  后坐力比重，主要用来控制射击时的射击动画（包括了后坐力造成的肩膀抖动）的比例 */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float RecoilWeight = 1.0f;
 
 };

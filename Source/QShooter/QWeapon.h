@@ -31,7 +31,7 @@ public:
 	void IncreaseAmmo(int32 ammoDelta);
 public:
 
-	void SetToEquipped();
+	void SetToEquipped(class AQShooterCharacter* player);
 
 	/** 注意这个方法必须在item已经设置为falling状态时才能调用 */
 	void ThrowWeapon();
@@ -51,6 +51,9 @@ private:
 	void StopFalling();
 private:
 
+	/** 装备当前weapon 的player */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	AQShooterCharacter* PlayerEuipThis = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float FallingDuration = 2.0f;
