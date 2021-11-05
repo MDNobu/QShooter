@@ -153,10 +153,13 @@ private:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	USoundCue* EquipSound = nullptr;
 
+	/** collect popup动画时用的slot的cache,用-1表示为初始化的，因为0是有效的slot index */
+	int32 InterpSlotIndex = -1;
 public:
 #pragma region GetterAndSetter
 	FORCEINLINE USoundCue* GetEquipSound() const { return EquipSound; }
 	FORCEINLINE int32 GetItemAmount() const { return ItemAmount; }
+	FORCEINLINE  int32 GetInterpSlotIndex() const { return InterpSlotIndex; }
 #pragma endregion
 
 

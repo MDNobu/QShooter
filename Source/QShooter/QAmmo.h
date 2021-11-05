@@ -26,8 +26,19 @@ protected:
 	void SetItemProperties(EQItemState targetItemState) override;
 
 private:
+#pragma region Components
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class UStaticMeshComponent* AmmoMesh = nullptr;
+
+	/**  用来触发玩家角色碰到ammo item时，自动collect */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	class USphereComponent* CollectTrigerSphere = nullptr;
+#pragma endregion
+
+	UFUNCTION()
+	void OnCollectSphereOverlap(
+			UPrimitiveComponent* OverlappedComponent,
+			AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	EAmmoType AmmoType = EAmmoType::EAT_9mm;
@@ -38,4 +49,6 @@ public:
 
 #pragma endregion
 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UTexture2D* AmmoTexture = nullptr;
 };

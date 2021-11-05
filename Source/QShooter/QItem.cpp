@@ -192,7 +192,11 @@ void AQItem::StartCollectLerping(AQShooterCharacter* character)
 	// 设置collect 动画用到的参数
 	{ 
 		CollectLerpStartLocation = GetActorLocation();
-		CameraTargetLocation = character->CalLocation4ItemCollectAnim();
+		//FInterpLocation interpSlot = character->SelectInterSlot();
+		int32 slotIndex = -1;
+		CameraTargetLocation = character->CalLocation4ItemCollectAnim(slotIndex, this);
+		InterpSlotIndex = slotIndex;
+
 		ItemCameraYawOffset = GetActorRotation().Yaw - character->GetFollowCamera()->GetComponentRotation().Yaw;
 	}
 	
@@ -245,7 +249,7 @@ void AQItem::EndCollectLerping()
 	ensure(QPlayerCharacter);
 	if (QPlayerCharacter)
 	{
-		QPlayerCharacter->CollectItem(this);
+		QPlayerCharacter->EndCollectItem(this);
 	}
 	SetActorScale3D(FVector(1.0f));
 }

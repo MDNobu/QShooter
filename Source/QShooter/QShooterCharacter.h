@@ -19,6 +19,27 @@ enum class ECombatState : uint8
 };
 
 
+USTRUCT(BlueprintType)
+struct FInterpLocation
+{
+	GENERATED_BODY()
+public:
+	FInterpLocation() : InterpSceneCom(nullptr), InterpNum(0)
+	{
+
+	}
+	FInterpLocation(USceneComponent* sceneCom, int32 num) : InterpSceneCom(sceneCom), InterpNum(num)
+	{
+	}
+	/** 作为collect item popup 动画,interp target的scenecom */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter")
+	USceneComponent* InterpSceneCom;
+
+	/** 朝这个scene interp的item数量 */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter")
+	int32 InterpNum;
+};
+
 UCLASS()
 class QSHOOTER_API AQShooterCharacter : public ACharacter
 {
@@ -63,10 +84,10 @@ public:
 	float GetCrosshairSpeadMultiplier() const;
 
 	/** 计算一个相机前上方的坐标，以便物品收集动画作为lerp target */
-	FVector CalLocation4ItemCollectAnim();
+	FVector CalLocation4ItemCollectAnim(OUT int& interpSlotIndex,class AQItem* targetItem);
 
 	/** 实际完成item收集的方法，按下收集按键时只是开始item过渡动画 */
-	void CollectItem(class AQItem* toCollectItem);
+	void EndCollectItem(class AQItem* toCollectItem);
 
 	FORCEINLINE class UCameraComponent* GetFollowCamera() { return FollowCamera; };
 
@@ -79,6 +100,7 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "QShooter")
 	void InsertClip();
+
 
 #pragma region GetAnSetters
 	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
@@ -169,6 +191,9 @@ private:
 	void StartAim();
 	void StopAim();
 	void CollectAmmo(class AQAmmo* ammo);
+	void InitInterpLocations();
+
+	FInterpLocation GetItemCollectInterpLocation(int32 index);
 private:
 
 
@@ -360,5 +385,30 @@ private:
 
 
 	
+	/** 这部分主要是为了收集到weapon/ammo之类的item的pop up动画，应该有更好的实现，先这么做 */
+#pragma region Components4ItemCollectAnim
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USceneComponent* WeaponSceneCom = nullptr;
 
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USceneComponent* InterpCom1 = nullptr;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USceneComponent* InterpCom2 = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USceneComponent* InterpCom3 = nullptr;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USceneComponent* InterpCom4 = nullptr;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USceneComponent* InterpCom5 = nullptr;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USceneComponent* InterpCom6 = nullptr;
+#pragma endregion
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	TArray<FInterpLocation> ItemCollectInterpSlots;
+
+	///** weapon用一个单独的inter location */
+	//UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	//FInterpLocation WeaponCollectInterpSlot;
 };

@@ -45,6 +45,24 @@ AQShooterCharacter::AQShooterCharacter()
 	movementCom->JumpZVelocity = 600.0f;
 
 	SceneCom4MoveClip = CreateDefaultSubobject<USceneComponent>(TEXT("ScneeComForMoveClip"));
+
+#pragma region SetupSceneComs4CollectItem
+	WeaponSceneCom = CreateDefaultSubobject<USceneComponent>(TEXT("WeaponCollectSceneCom"));
+	WeaponSceneCom->SetupAttachment(GetFollowCamera());
+	InterpCom1 = CreateDefaultSubobject<USceneComponent>(TEXT("InterpCom1"));
+	InterpCom1->SetupAttachment(GetFollowCamera());
+	InterpCom2 = CreateDefaultSubobject<USceneComponent>(TEXT("InterpCom2"));
+	InterpCom2->SetupAttachment(GetFollowCamera());
+	InterpCom3 = CreateDefaultSubobject<USceneComponent>(TEXT("InterpCom3"));
+	InterpCom3->SetupAttachment(GetFollowCamera());
+	InterpCom4 = CreateDefaultSubobject<USceneComponent>(TEXT("InterpCom4"));
+	InterpCom4->SetupAttachment(GetFollowCamera());
+	InterpCom5 = CreateDefaultSubobject<USceneComponent>(TEXT("InterpCom5"));
+	InterpCom5->SetupAttachment(GetFollowCamera());
+	InterpCom6 = CreateDefaultSubobject<USceneComponent>(TEXT("InterpCom6"));
+	InterpCom6->SetupAttachment(GetFollowCamera());
+#pragma endregion
+
 }
 
 void AQShooterCharacter::IncreaseOverlapItemCount()
@@ -84,6 +102,8 @@ void AQShooterCharacter::BeginPlay()
 	ensure(2 * FireDuration <= AutoFireDuration);
 #pragma endregion
 
+
+	InitInterpLocations();
 }
 
 void AQShooterCharacter::AimButtonPressed()
@@ -135,12 +155,34 @@ void AQShooterCharacter::CollectAmmo(AQAmmo* ammo)
 	ammo->Destroy();
 }
 
+void AQShooterCharacter::InitInterpLocations()
+{
+	//WeaponCollectInterpSlot = FInterpLocation(WeaponSceneCom, 0);
+	//throw std::logic_error("The method or operation is not implemented.");
+	ItemCollectInterpSlots.Add(FInterpLocation(WeaponSceneCom, 0));
+	ItemCollectInterpSlots.Add(FInterpLocation(InterpCom1, 0));
+	ItemCollectInterpSlots.Add(FInterpLocation(InterpCom2, 0));
+	ItemCollectInterpSlots.Add(FInterpLocation(InterpCom3, 0));
+	ItemCollectInterpSlots.Add(FInterpLocation(InterpCom4, 0));
+	ItemCollectInterpSlots.Add(FInterpLocation(InterpCom5, 0));
+	ItemCollectInterpSlots.Add(FInterpLocation(InterpCom6, 0));
+}
+
+FInterpLocation AQShooterCharacter::GetItemCollectInterpLocation(int32 index)
+{
+	if (index >= 0 && index < ItemCollectInterpSlots.Num())
+	{
+		return ItemCollectInterpSlots[index];
+	}
+	return FInterpLocation();
+}
+
 float AQShooterCharacter::GetCrosshairSpeadMultiplier() const
 {
 	return CrosshairSpeadMultiplier;
 }
 
-FVector AQShooterCharacter::CalLocation4ItemCollectAnim()
+FVector AQShooterCharacter::CalLocation4ItemCollectAnim(OUT int& interpSlotIndex, AQItem* targetItem)
 {
 #pragma region Algorithm1
 	/*
@@ -166,21 +208,69 @@ FVector AQShooterCharacter::CalLocation4ItemCollectAnim()
 	return itemTargetPoint;
 	*/
 #pragma endregion
+	//FInterpLocation interLocation;
+	FVector interpPosition = FVector::ZeroVector;
+	int32 resSlotIndex = -1;
+	/** 根据负载，选择一个item collect动画用到的interp location */
+	//targetItem->GetClass()->is
+	if (Cast<AQWeapon>(targetItem))
+	{
+		interpPosition = ItemCollectInterpSlots[0].InterpSceneCom->GetComponentLocation();
+		resSlotIndex = 0;
+		
+	}
+	else
+	{
+#pragma region SelectSlotByWeight
+		int32 lowerestCount = INT_MAX;
 
-	const FVector targetPointCS(CameraLerpPointDeltaX, 0.0f, CameraLerpPointDeltaZ);
-	//FollowCamera->world
-	const FVector targetPointWS = FollowCamera->GetComponentTransform().TransformPosition(targetPointCS);
+		for (int32 i = 1; i < ItemCollectInterpSlots.Num(); i++)
+		{
+			if (ItemCollectInterpSlots[i].InterpNum < lowerestCount)
+			{
+				lowerestCount = ItemCollectInterpSlots[i].InterpNum;
+				resSlotIndex = i;
+			}
+		}
+		interpPosition = ItemCollectInterpSlots[resSlotIndex].InterpSceneCom->GetComponentLocation();
+#pragma endregion
 
-	DrawDebugPoint(GetWorld(), targetPointWS, 20.0f, FColor::Red, true);
-	return targetPointWS;
+	}
+	/*FName className = targetItem->GetClass()->GetFName();
+	UE_LOG(LogTemp, Warning, TEXT("Collect item class name = %s"), *className.ToString());*/
+
+	//const FVector targetPointCS(CameraLerpPointDeltaX, 0.0f, CameraLerpPointDeltaZ);
+	////FollowCamera->world
+	//const FVector targetPointWS = FollowCamera->GetComponentTransform().TransformPosition(targetPointCS);
+
+	DrawDebugPoint(GetWorld(), interpPosition, 20.0f, FColor::Red, true);
+	//return targetPointWS;
+	UE_LOG(LogTemp, Warning, TEXT("item %s use slot index %d"), *targetItem->GetName(), resSlotIndex);
+
+	ItemCollectInterpSlots[resSlotIndex].InterpNum++;
+
+	interpSlotIndex = resSlotIndex;
+	return interpPosition;
 }
 
-void AQShooterCharacter::CollectItem(AQItem* toCollectItem)
+void AQShooterCharacter::EndCollectItem(AQItem* toCollectItem)
 {
 	if (!toCollectItem)
 		return;
 
-	
+	//ItemCollectInterpSlots[]
+	// 回收collect slot
+	{
+		int32 slotIndex = toCollectItem->GetInterpSlotIndex();
+		if (slotIndex >= 0 && slotIndex < ItemCollectInterpSlots.Num())
+		{
+			ItemCollectInterpSlots[slotIndex].InterpNum--;
+		}
+		else
+		{
+			checkNoEntry();
+		}
+	}
 
 	if (AQWeapon* weapon = Cast<AQWeapon>(toCollectItem))
 	{
@@ -589,6 +679,7 @@ void AQShooterCharacter::InsertClip()
 {
 	bIsClipMoving = false;
 }
+
 
 void AQShooterCharacter::ReloadButtonPressed()
 {
