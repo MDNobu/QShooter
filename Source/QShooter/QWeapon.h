@@ -34,14 +34,15 @@ public:
 	void SetToEquipped(class AQShooterCharacter* player);
 
 	/** 注意这个方法必须在item已经设置为falling状态时才能调用 */
-	void ThrowWeapon();
-
-	
+	void ThrowItem() override;
 
 	bool HasAmmo();
 	void FireOneBullet();
 
 	bool IsClipFull() const;
+
+	UFUNCTION(BlueprintPure, Category = "QShooter")
+	UTexture2D* GetAmmoIconTexture();
 protected:
 
 
@@ -81,7 +82,8 @@ private:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	FName ClipName{ FName(TEXT("smg_clip")) };
 	
-
+	UPROPERTY(EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UTexture2D* AmmoIcon = nullptr;
 
 #pragma region GetterAndSetters
 public:

@@ -14,10 +14,12 @@ enum class ECombatState : uint8
 	ECS_Unoccupied UMETA(DisplayName = "Unoccupied"),  //未射击的状态，可以进入到下面两个状态中
 	ECS_FireInProgress UMETA(DisplayName = "FireInProgress"), // 正在射击的状态，只能到unoccupied
 	ECS_Reloading UMETA(DisplayName = "Reloading"),  //正在reload, 只能到unoccupied
+	ECS_Equipping UMETA(DisplayName = "Equiping"),
 
 	ECS_MAX  UMETA(DisplayName = "MAX", Hidden)
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipItemDelegate, int32, curSlotIndex, int32, newSlotIndex);
 
 USTRUCT(BlueprintType)
 struct FInterpLocation
@@ -60,8 +62,7 @@ protected:
 	virtual void BeginPlay() override;
 
 
-	void AimButtonPressed();
-	void AimButtonReleased();
+
 
 
 	
@@ -96,6 +97,9 @@ public:
 	void EndReloadWeapon();
 
 	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void EndEquipping();
+
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
 	void GrabClip();
 	
 	UFUNCTION(BlueprintCallable, Category = "QShooter")
@@ -110,9 +114,13 @@ public:
 
 
 protected:
-
+#pragma region InputBinds
 	void FireButtonPressed();
 	void FireButtonReleased();
+
+	void AimButtonPressed();
+	void AimButtonReleased();
+#pragma endregion
 
 	/** 进行射击，可以是不停点击射击的点射调用的 或者按住射击键的连射调用的 */
 	void TryFireWeapon();
@@ -122,8 +130,21 @@ protected:
 
 
 private:
-	void ToggleCrouch();
 
+#pragma region InputBinds
+	void SelectButtonPressed();
+	void SelectButtonReleased();
+	void ReloadButtonPressed();
+
+	// Key binding function to handle switching equiping weapon
+	void FKeyPressed();
+	void OneKeyPressed();
+	void TwoKeyPressed();
+	void ThreeKeyPressed();
+	void FourKeyPressed();
+	void FiveKeyPressed();
+#pragma endregion
+	void ToggleCrouch();
 
 	void MoveForward(float value);
 	void MoveRight(float value);
@@ -148,6 +169,7 @@ private:
 	void FireOneBulletEffects();
 
 	//void EndFireBullet();
+	void ChangeEquipWeapon(int32 newWeaponInventIndex);
 
 	bool CalBulletTrailEndPointAndIfHitSth(const FTransform& socketTransform, OUT FVector& bulletTrailEndPoint);
 	void UpdateCameraRotateRateByIsAimming();
@@ -164,14 +186,25 @@ private:
 
 	void SpawnAndEquipDefaultWeapon();
 
+	/** 必须在newWeapon添加到inventory之后才能调用 */
+	//void EquipWeapon(class AQWeapon* newWeapon);
 	void EquipWeapon(class AQWeapon* newWeapon);
 
 	void DropEquippedWeapon();
 
+	void DropItem(AQItem* itemToDrop);
+
+	/**
+	 * 添加item到inventory，1.如果已经存在不添加 2.inventory已满不添加
+	 * 成功添加时返回item所在的index,否则返回 INDEX_NONE
+	 */  
+	int32 AddItemToInventory(AQItem* itemToDrop);
+	bool RemoveFromInventory(AQItem* itemToRemove);
+
+	bool IsInventoryFull();
+
 	void SwapWeapon(AQWeapon* targetWeapon);
 
-	void SelectButtonPressed();
-	void SelectButtonReleased();
 	void AmmoAmountInitial();
 
 	bool DoesEquippedWeaponHasAmmo();
@@ -179,10 +212,8 @@ private:
 	void StartReloadWeapon();
 	
 
-	void ReloadButtonPressed();
 	bool HasSuitableAmmoPack();
-	/** 更新clip的位置，主要是处理换弹夹时clip的位置随手而移动的问题 */
-	void UpdateClipTransform();
+
 
 	/** 根据crouch 与否，lerp capsule half height */
 	void UpdateCapsuleHalfHeight(float DeltaTime);
@@ -190,7 +221,7 @@ private:
 
 	void StartAim();
 	void StopAim();
-	void CollectAmmo(class AQAmmo* ammo);
+	void ConsumeAmmo(class AQAmmo* ammo);
 	void InitInterpLocations();
 
 	FInterpLocation GetItemCollectInterpLocation(int32 index);
@@ -258,6 +289,13 @@ private:
 	float CrosshairShootingFactor = 0.0f;
 #pragma endregion
 
+#pragma region Variable4Anim
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UAnimMontage* EquipWeaponMontage = nullptr;
+
+
+#pragma endregion
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class USoundCue* FireSoundCue = nullptr;
@@ -320,6 +358,10 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	AQWeapon* EquippedWeapon = nullptr;
+
+	/** 只是给inventory动画用的 */
+	int32 PreWeaponInventoryIndex = INDEX_NONE;
+
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	AQItem* FocusedItem = nullptr;
@@ -403,12 +445,23 @@ private:
 	USceneComponent* InterpCom5 = nullptr;
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	USceneComponent* InterpCom6 = nullptr;
-#pragma endregion
-	
+
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	TArray<FInterpLocation> ItemCollectInterpSlots;
+#pragma endregion
+	
+#pragma region InventoryParams
+	/** 现在inventory限制在6 */
+	const int32 INVENTORY_CAPCITY = 6;
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	TArray<AQItem*> InventoryWeapons;
 
-	///** weapon用一个单独的inter location */
-	//UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
-	//FInterpLocation WeaponCollectInterpSlot;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	int32 EquipedWeaponInventoryIndex = 0;
+
+	/** 装备武器时inventory收到slot information的delegate */
+	UPROPERTY(BlueprintAssignable, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	FEquipItemDelegate EquipItemDelegate;
+#pragma endregion
 };

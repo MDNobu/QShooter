@@ -55,7 +55,6 @@ void AQItem::BeginPlay()
 
 	DisableCustomDepth();
 	EnableGlowEffect();
-	
 }
 
 // Called every frame
@@ -152,6 +151,20 @@ void AQItem::SetItemProperties(EQItemState targetItemState)
 		ItemWidgetComponent->SetVisibility(false);
 		break;
 	case EQItemState::EIS_PickedUp:
+		// mesh property setting
+		ItemMeshComponent->SetSimulatePhysics(false);
+		ItemMeshComponent->SetEnableGravity(false);
+		ItemMeshComponent->SetVisibility(false);
+		ItemMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+		ItemMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		// trigger sphere setting
+		ItemTriggerSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+		ItemTriggerSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		// visiblity box setting
+		ItemWidgetVisibilityBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+		ItemWidgetVisibilityBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		// widget setting
+		ItemWidgetComponent->SetVisibility(false);
 		break;
 	case EQItemState::EIS_Falling:
 		// mesh property setting
@@ -179,14 +192,7 @@ void AQItem::SetItemProperties(EQItemState targetItemState)
 		break;
 	}
 
-	if (targetItemState == EQItemState::EIS_Equipped || targetItemState == EQItemState::EIS_Falling)
-	{
-		DisableGlowEffect();
-	}
-	else
-	{
-		EnableGlowEffect();
-	}
+
 
 }
 
@@ -199,12 +205,30 @@ void AQItem::ConfigItemState(EQItemState targetItemState)
 	ItemState = targetItemState;
 	SetItemProperties(ItemState);
 
+#pragma region ConfigGlowEffect
+	if (targetItemState == EQItemState::EIS_Equipped || targetItemState == EQItemState::EIS_Falling)
+	{
+		DisableGlowEffect();
+	}
+	else
+	{
+		EnableGlowEffect();
+	}
+
 	if (EQItemState::EIS_ToPickUp == ItemState)
 	{
 		ResetDynamicGlowTimer_ToPickUp();
-	}else if (EQItemState::EIS_EquipInterping == ItemState)
+	}
+	else if (EQItemState::EIS_EquipInterping == ItemState)
 	{
 		ResetDynamicGlowTimer_Interping();
+	}
+#pragma endregion
+
+
+	if (targetItemState != EQItemState::EIS_ToPickUp)
+	{
+		DisableCustomDepth();
 	}
 }
 
@@ -216,6 +240,11 @@ void AQItem::ChangeToFalling()
 	//ItemState = EQItemState::EIS_Falling;
 	//SetItemProperties(ItemState);
 	ConfigItemState(EQItemState::EIS_Falling);
+}
+
+void AQItem::ChangeToPickedUp()
+{
+	ConfigItemState(EQItemState::EIS_PickedUp);
 }
 
 void AQItem::StartCollectLerping(AQShooterCharacter* character)
@@ -259,6 +288,11 @@ void AQItem::EnableCustomDepth()
 void AQItem::DisableCustomDepth()
 {
 	ItemMeshComponent->SetRenderCustomDepth(false);
+}
+
+void AQItem::ThrowItem()
+{
+
 }
 
 void AQItem::OnItemBeginOverlap( UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

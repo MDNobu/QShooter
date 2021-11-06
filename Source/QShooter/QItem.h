@@ -52,6 +52,7 @@ public:
 
 	void ShowItem();
 	void ChangeToFalling();
+	void ChangeToPickedUp();
 
 	void StartCollectLerping(class AQShooterCharacter* character);
 
@@ -60,7 +61,7 @@ public:
 	virtual void EnableCustomDepth();
 	virtual void DisableCustomDepth();
 
-
+	virtual void ThrowItem();
 protected:
 	/** 注意这个方法只在状态变化时调用不要重复调用 */
 	virtual void SetItemProperties(EQItemState targetItemState);
@@ -114,9 +115,6 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	EQItemState ItemState = EQItemState::EIS_ToPickUp;
 private:
-
-
-
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	FString ItemName {TEXT("Default Gun") };
@@ -173,7 +171,14 @@ private:
 	/** collect popup动画时用的slot的cache,用-1表示为初始化的，因为0是有效的slot index */
 	int32 InterpSlotIndex = -1;
 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UTexture2D* ItemBackground = nullptr;
 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UTexture2D* ItemIcon = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	int32 InventoryIndex = INDEX_NONE;
 #pragma region Params4Material
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	int32 ItemMaterialIndex = 0;
@@ -211,12 +216,13 @@ private:
 	FTimerHandle DynamicGlowTimerHandle_Interping;
 #pragma endregion
 
-
 public:
 #pragma region GetterAndSetter
 	FORCEINLINE USoundCue* GetEquipSound() const { return EquipSound; }
 	FORCEINLINE int32 GetItemAmount() const { return ItemAmount; }
 	FORCEINLINE  int32 GetInterpSlotIndex() const { return InterpSlotIndex; }
+	FORCEINLINE int32 GetInventoryIndex() const { return InventoryIndex; }
+	void SetInventoryIndex(int32 val) { InventoryIndex = val; }
 #pragma endregion
 
 

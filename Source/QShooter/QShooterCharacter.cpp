@@ -94,6 +94,9 @@ void AQShooterCharacter::BeginPlay()
 	CameraDefaultFOV = FollowCamera->FieldOfView;
 	CameraCurrenFOV = CameraDefaultFOV;
 
+	//init inventory
+	InventoryWeapons.Init(nullptr, INVENTORY_CAPCITY);
+
 	SpawnAndEquipDefaultWeapon();
 
 	AmmoAmountInitial();
@@ -130,7 +133,7 @@ void AQShooterCharacter::StopAim()
 	}
 }
 
-void AQShooterCharacter::CollectAmmo(AQAmmo* ammo)
+void AQShooterCharacter::ConsumeAmmo(AQAmmo* ammo)
 {
 #pragma region UpdatePlayerAmmo
 	int32 targetTypeAmmoAmount = 0;
@@ -274,11 +277,24 @@ void AQShooterCharacter::EndCollectItem(AQItem* toCollectItem)
 
 	if (AQWeapon* weapon = Cast<AQWeapon>(toCollectItem))
 	{
-		SwapWeapon(weapon);
+		if (IsInventoryFull())
+		{
+			SwapWeapon(weapon);
+		}
+		else
+		{
+			//使用新获得的weapon
+			//EquipedWeaponInventoryIndex = AddItemToInventory(weapon);
+			//EquippedWeapon = InventoryWeapons[EquipedWeaponInventoryIndex];
+			AddItemToInventory(weapon);
+			//EquipWeapon( weapon);
+			weapon->ChangeToPickedUp();
+		}
+
 	}
-	else if (AQAmmo* ammo = Cast<AQAmmo>(toCollectItem))
+	else if (AQAmmo* ammoItem = Cast<AQAmmo>(toCollectItem))
 	{
-		CollectAmmo(ammo);
+		ConsumeAmmo(ammoItem);
 	}
 	else
 	{
@@ -307,8 +323,6 @@ void AQShooterCharacter::Tick(float DeltaTime)
 
 
 	LineTraceToShowItems();
-
-	UpdateClipTransform();
 
 	UpdateCapsuleHalfHeight(DeltaTime);
 }
@@ -435,6 +449,17 @@ void AQShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 	PlayerInputComponent->BindAction(TEXT("Reload"), IE_Pressed, this, &AQShooterCharacter::ReloadButtonPressed);
 	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AQShooterCharacter::ToggleCrouch);
+
+#pragma region BindKey4ChangeEquipWeapon
+	PlayerInputComponent->BindAction(TEXT("FKey"), IE_Pressed, this, &AQShooterCharacter::FKeyPressed);
+	PlayerInputComponent->BindAction(TEXT("1Key"), IE_Pressed, this, &AQShooterCharacter::OneKeyPressed);
+	PlayerInputComponent->BindAction(TEXT("2Key"), IE_Pressed, this, &AQShooterCharacter::TwoKeyPressed);
+	PlayerInputComponent->BindAction(TEXT("3Key"), IE_Pressed, this, &AQShooterCharacter::ThreeKeyPressed);
+	PlayerInputComponent->BindAction(TEXT("4Key"), IE_Pressed, this, &AQShooterCharacter::FourKeyPressed);
+	PlayerInputComponent->BindAction(TEXT("5Key"), IE_Pressed, this, &AQShooterCharacter::FiveKeyPressed);
+
+#pragma endregion
+
 }
 
 void AQShooterCharacter::ToggleCrouch()
@@ -551,9 +576,27 @@ void AQShooterCharacter::FireOneBulletEffects()
 		characterAnimInstance->Montage_Play(FireAnimMontage);
 		characterAnimInstance->Montage_JumpToSection(TEXT("StartFire"));
 	}
-	
-	
 
+}
+
+void AQShooterCharacter::ChangeEquipWeapon(int32 newWeaponInventIndex)
+{
+	if (CombatState != ECombatState::ECS_Unoccupied)
+	{
+		return;
+	}
+	bool isNewIndexLegal = (newWeaponInventIndex >= 0) && (newWeaponInventIndex < InventoryWeapons.Num());
+	bool notSameWithEquiped = (InventoryWeapons[newWeaponInventIndex] != EquippedWeapon);
+		//EquippedWeapon && (EquippedWeapon->GetInventoryIndex() != newWeaponInventIndex);
+	if (isNewIndexLegal && notSameWithEquiped)
+	{
+		if (AQWeapon* newWeapon = Cast<AQWeapon>(InventoryWeapons[newWeaponInventIndex]))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("change to weapon in slot %d"), newWeaponInventIndex);
+			EquipWeapon(newWeapon);
+		}
+	}
+	
 }
 
 void AQShooterCharacter::EndFireBullet()
@@ -647,6 +690,12 @@ void AQShooterCharacter::EndReloadWeapon()
 	}
 }
 
+void AQShooterCharacter::EndEquipping()
+{
+	UE_LOG(LogTemp, Warning, TEXT("End Equipping weapon"));
+	CombatState = ECombatState::ECS_Unoccupied;
+}
+
 /**
  * 实现的基本思想是，在handl_l 上attach一个scene component, runtime 时修改clip的transform,使其和scene component一致
  */
@@ -686,6 +735,48 @@ void AQShooterCharacter::ReloadButtonPressed()
 	StartReloadWeapon();
 }
 
+void AQShooterCharacter::FKeyPressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("FKey Pressed"));
+	int targetIndex = 0;
+	ChangeEquipWeapon(targetIndex);
+}
+
+void AQShooterCharacter::OneKeyPressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("1Key Pressed"));
+	int targetIndex = 1;
+	ChangeEquipWeapon(targetIndex);
+}
+
+void AQShooterCharacter::TwoKeyPressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("2Key Pressed"));
+	int targetIndex = 2;
+	ChangeEquipWeapon(targetIndex);
+}
+
+void AQShooterCharacter::ThreeKeyPressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("3Key Pressed"));
+	int targetIndex = 3;
+	ChangeEquipWeapon(targetIndex);
+}
+
+void AQShooterCharacter::FourKeyPressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("4Key Pressed"));
+	int targetIndex = 4;
+	ChangeEquipWeapon(targetIndex);
+}
+
+void AQShooterCharacter::FiveKeyPressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("5Key Pressed"));
+	int targetIndex = 5;
+	ChangeEquipWeapon(targetIndex);
+}
+
 bool AQShooterCharacter::HasSuitableAmmoPack()
 {
 	bool hasAmmo = false;
@@ -700,12 +791,7 @@ bool AQShooterCharacter::HasSuitableAmmoPack()
 	return hasAmmo;
 }
 
-void AQShooterCharacter::UpdateClipTransform()
-{
-	//if (!bIsClipMoving) return;
 
-	
-}
 
 void AQShooterCharacter::UpdateCapsuleHalfHeight(float DeltaTime)
 {
@@ -858,15 +944,58 @@ void AQShooterCharacter::SpawnAndEquipDefaultWeapon()
 	if (DefaulWeaponClass)
 	{
 		AQWeapon* newWeapon = GetWorld()->SpawnActor<AQWeapon>(DefaulWeaponClass);
-
+		AddItemToInventory(newWeapon);
 		EquipWeapon(newWeapon);
 	}
 }
 
-void AQShooterCharacter::EquipWeapon(AQWeapon* newWeapon)
+//void AQShooterCharacter::EquipWeapon(AQWeapon* newWeapon)
+//{
+//	AQWeapon* preWeapon = EquippedWeapon;
+//	EquipWeapon(preWeapon, newWeapon);
+//}
+
+void AQShooterCharacter::EquipWeapon( AQWeapon* newWeapon)
 {
+	if (EquippedWeapon == newWeapon || 
+		nullptr == newWeapon)
+	{
+		return;
+	}
+
+#pragma region BroadcastEvent4InventoryUI
+	if (nullptr == EquippedWeapon)
+	{
+		// 如果当前EquipWeapon为空，尝试使用preWeaponindx
+		if (PreWeaponInventoryIndex != INDEX_NONE)
+		{
+			EquipItemDelegate.Broadcast(PreWeaponInventoryIndex, newWeapon->GetInventoryIndex());
+			//PreWeaponInventoryIndex = INDEX_NONE;
+			
+		}
+		else
+		{
+			EquipItemDelegate.Broadcast(-1, newWeapon->GetInventoryIndex());
+		}
+	}
+	else
+	{
+		EquipItemDelegate.Broadcast(EquippedWeapon->GetInventoryIndex(), newWeapon->GetInventoryIndex());
+	}
+#pragma endregion
+
+
+	if (EquippedWeapon) 
+	{
+		EquippedWeapon->ChangeToPickedUp();
+	}
+
+	EquipedWeaponInventoryIndex = newWeapon->GetInventoryIndex();
 	newWeapon->SetToEquipped(this);
 
+	EquippedWeapon = newWeapon;
+	PreWeaponInventoryIndex = EquippedWeapon->GetInventoryIndex();
+#pragma region AttachNewWeapon
 	const USkeletalMeshSocket* rightHandleSocket = GetMesh()->GetSocketByName(FName(TEXT("right_hand_socket")));
 	ensure(rightHandleSocket);
 
@@ -874,26 +1003,112 @@ void AQShooterCharacter::EquipWeapon(AQWeapon* newWeapon)
 	{
 		rightHandleSocket->AttachActor(newWeapon, GetMesh());
 	}
-	EquippedWeapon = newWeapon;
+#pragma endregion
+
+	
+#pragma region PlayEquipAnim
+	UAnimInstance* animInst = GetMesh()->GetAnimInstance();
+	if (EquipWeaponMontage)
+	{
+		CombatState = ECombatState::ECS_Equipping;
+
+		animInst->Montage_Play(EquipWeaponMontage);
+		animInst->Montage_JumpToSection(TEXT("Equip"));
+	}
+#pragma endregion
+
+	
 }
+
 
 void AQShooterCharacter::DropEquippedWeapon()
 {
 	if (EquippedWeapon)
 	{
-		EquippedWeapon->ChangeToFalling();
-		EquippedWeapon->ThrowWeapon();
-
+		//EquippedWeapon->ChangeToFalling();
+		//EquippedWeapon->ThrowItem();
+		DropItem(EquippedWeapon);
+		//Remove from inventory
 		EquippedWeapon = nullptr;
 	}
 }
 
+bool AQShooterCharacter::RemoveFromInventory(AQItem* itemToRemove)
+{
+	bool success = false;
+	//现在只有weapon在inventory中，先用inventoryWeapons
+	int32 itemIndex = InventoryWeapons.Find(itemToRemove);
+	if (INDEX_NONE != itemIndex)
+	{
+		InventoryWeapons[itemIndex] = nullptr;
+		itemToRemove->SetInventoryIndex(INDEX_NONE);
+		success = true;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Try to drop an item %s not in inventory"), *itemToRemove->GetName());
+	}
+	return success;
+}
+
+
+
+void AQShooterCharacter::DropItem(AQItem* itemToDrop)
+{
+	bool removeSuccess = RemoveFromInventory(itemToDrop);
+	if (removeSuccess)
+	{
+		itemToDrop->ChangeToFalling();
+		itemToDrop->ThrowItem();
+	}
+}
+
+int32 AQShooterCharacter::AddItemToInventory(AQItem* itemToDrop)
+{
+	int32 resItemIdex = INDEX_NONE;
+
+	//现在只有weapon在inventory中，先用inventoryWeapons
+	if (INDEX_NONE == InventoryWeapons.Find(itemToDrop)) //itemToAdd no exist in inventory
+	{
+		int32 emptSlot = InventoryWeapons.Find(nullptr);
+		if (INDEX_NONE == emptSlot)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("inventory is full"));
+		}
+		else
+		{
+			InventoryWeapons[emptSlot] = itemToDrop;
+			resItemIdex = emptSlot;
+
+			itemToDrop->SetInventoryIndex(emptSlot);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Try to add an existing item %s not in inventory"), *itemToDrop->GetName());
+	}
+	return resItemIdex;
+}
+
+bool AQShooterCharacter::IsInventoryFull()
+{
+	//InventoryWeapons.Num() < INVENTORY_CAPCITY;
+	return InventoryWeapons.Find(nullptr) == INDEX_NONE;
+}
+
 void AQShooterCharacter::SwapWeapon(AQWeapon* targetWeapon)
 {
+	if (CombatState != ECombatState::ECS_Unoccupied)
+	{
+		return;
+	}
 	if (targetWeapon &&
 		 (targetWeapon != EquippedWeapon))
 	{
 		DropEquippedWeapon();
+		AddItemToInventory(targetWeapon);
+
+		//UE_LOG(LogTemp, Error, TEXT("SwapWepon preWeapon index %d"), preWeapon->GetInventoryIndex());
 		EquipWeapon(targetWeapon);
 	}
 }

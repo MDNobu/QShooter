@@ -48,6 +48,7 @@ void UQShooterAnimInstance::UpdateAnimProperties(float deltatTime)
 	AimPitch = ShooterCharacterCache->GetBaseAimRotation().Pitch;
 
 	bIsReloading = ShooterCharacterCache->GetCombatState() == ECombatState::ECS_Reloading;
+	bIsEquipping = ShooterCharacterCache->GetCombatState() == ECombatState::ECS_Equipping;
 
 #pragma region SetAimOffsetState
 	if (bIsReloading)

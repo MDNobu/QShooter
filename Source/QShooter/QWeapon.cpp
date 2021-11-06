@@ -35,6 +35,11 @@ bool AQWeapon::IsClipFull() const
 	return AmmoAmount == MagazineCapcity;
 }
 
+UTexture2D* AQWeapon::GetAmmoIconTexture()
+{
+	return AmmoIcon;
+}
+
 void AQWeapon::BeginPlay()
 {
 	Super::BeginPlay();
@@ -55,7 +60,7 @@ void AQWeapon::SetToEquipped(AQShooterCharacter* player)
 	}
 }
 
-void AQWeapon::ThrowWeapon()
+void AQWeapon::ThrowItem()
 {
 	// 1. 计算一个impulse direction, 预期方向是武器前向，左右偏一点
 	FVector impulseDirection = FVector::ForwardVector;
