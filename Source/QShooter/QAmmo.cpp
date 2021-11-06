@@ -22,6 +22,16 @@ AQAmmo::AQAmmo()
 	CollectTrigerSphere->SetSphereRadius(40.0f);
 }
 
+void AQAmmo::EnableCustomDepth()
+{
+	AmmoMesh->SetRenderCustomDepth(true);
+}
+
+void AQAmmo::DisableCustomDepth()
+{
+	AmmoMesh->SetRenderCustomDepth(false);
+}
+
 void AQAmmo::BeginPlay()
 {
 	Super::BeginPlay();

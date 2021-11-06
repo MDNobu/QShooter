@@ -47,7 +47,7 @@ void AQWeapon::SetToEquipped(AQShooterCharacter* player)
 	ensureMsgf(player, TEXT("Playe should not be null "));
 	PlayerEuipThis = player;
 
-	SetItemState(EQItemState::EIS_Equipped);
+	ConfigItemState(EQItemState::EIS_Equipped);
 
 	if (USoundCue* euipSound = GetEquipSound())
 	{
@@ -89,6 +89,5 @@ bool AQWeapon::HasAmmo()
 void AQWeapon::StopFalling()
 {
 	bIsFalling = false;
-	ItemState = EQItemState::EIS_ToPickUp;
-	SetItemState(ItemState);
+	ConfigItemState(EQItemState::EIS_ToPickUp);
 }

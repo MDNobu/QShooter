@@ -17,6 +17,12 @@ class QSHOOTER_API AQAmmo : public AQItem
 public:
 	AQAmmo();
 
+
+	void EnableCustomDepth() override;
+
+
+	void DisableCustomDepth() override;
+
 protected:
 
 

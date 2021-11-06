@@ -11,6 +11,7 @@
 #include "Camera/CameraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
+#include "Curves/CurveVector.h"
 
 // Sets default values
 AQItem::AQItem() 
@@ -42,7 +43,7 @@ void AQItem::BeginPlay()
 	ItemTriggerSphere->OnComponentBeginOverlap.AddDynamic(this, &AQItem::OnItemBeginOverlap);
 	ItemTriggerSphere->OnComponentEndOverlap.AddDynamic(this, &AQItem::OnItemEndOverlap);
 
-	SetItemState(ItemState);
+	ConfigItemState(ItemState);
 
 	if (ItemZFloatCurve && ItemScaleCurve)
 	{
@@ -51,6 +52,10 @@ void AQItem::BeginPlay()
 		ItemZFloatCurve->GetTimeRange(minTime, maxTime);
 		CollectAnimDuraction = maxTime - minTime;
 	}
+
+	DisableCustomDepth();
+	EnableGlowEffect();
+	
 }
 
 // Called every frame
@@ -64,18 +69,27 @@ void AQItem::Tick(float DeltaTime)
 		if (!bIsVisibleLastFrame && bIsVisibleCurFrame) //前一帧没有显示而当前帧显示
 		{
 			ItemWidgetComponent->SetVisibility(true);
+			EnableCustomDepth();
 		}
 		else if (bIsVisibleLastFrame && !bIsVisibleCurFrame) //前一帧显示而当前帧没有显示
 		{
 			ItemWidgetComponent->SetVisibility(false);
+			DisableCustomDepth();
 		}
 		
 		bIsVisibleLastFrame = bIsVisibleCurFrame;
 		bIsVisibleCurFrame = false;
 	}
 
+	if (bIsCollectLerping) //lerping时EnableCustomDepth
+	{
+		EnableCustomDepth();
+	}
+	
 
 	CollectLerping(DeltaTime);
+
+	UpdateDynamicGlowParams(DeltaTime);
 }
 
 void AQItem::ShowItem()
@@ -164,12 +178,34 @@ void AQItem::SetItemProperties(EQItemState targetItemState)
 		checkNoEntry();
 		break;
 	}
+
+	if (targetItemState == EQItemState::EIS_Equipped || targetItemState == EQItemState::EIS_Falling)
+	{
+		DisableGlowEffect();
+	}
+	else
+	{
+		EnableGlowEffect();
+	}
+
 }
 
-void AQItem::SetItemState(EQItemState targetItemState)
+void AQItem::ConfigItemState(EQItemState targetItemState)
 {
+	if (targetItemState == ItemState)
+	{
+		return;
+	}
 	ItemState = targetItemState;
 	SetItemProperties(ItemState);
+
+	if (EQItemState::EIS_ToPickUp == ItemState)
+	{
+		ResetDynamicGlowTimer_ToPickUp();
+	}else if (EQItemState::EIS_EquipInterping == ItemState)
+	{
+		ResetDynamicGlowTimer_Interping();
+	}
 }
 
 void AQItem::ChangeToFalling()
@@ -177,8 +213,9 @@ void AQItem::ChangeToFalling()
 	//ItemMeshComponent->DetachFromParent(true);
 	FDetachmentTransformRules detachRules(EDetachmentRule::KeepWorld, true);
 	ItemMeshComponent->DetachFromComponent(detachRules);
-	ItemState = EQItemState::EIS_Falling;
-	SetItemProperties(ItemState);
+	//ItemState = EQItemState::EIS_Falling;
+	//SetItemProperties(ItemState);
+	ConfigItemState(EQItemState::EIS_Falling);
 }
 
 void AQItem::StartCollectLerping(AQShooterCharacter* character)
@@ -201,8 +238,9 @@ void AQItem::StartCollectLerping(AQShooterCharacter* character)
 	}
 	
 
-	ItemState = EQItemState::EIS_EquipInterping;
-	SetItemProperties(ItemState);
+	//ItemState = EQItemState::EIS_EquipInterping;
+	//SetItemProperties(ItemState);
+	ConfigItemState(EQItemState::EIS_EquipInterping);
 
 	// Play Collect Sound
 	if (PickupSound)
@@ -211,6 +249,16 @@ void AQItem::StartCollectLerping(AQShooterCharacter* character)
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(CollectLerpEndHandle, this, &AQItem::EndCollectLerping, CollectAnimDuraction);
+}
+
+void AQItem::EnableCustomDepth()
+{
+	ItemMeshComponent->SetRenderCustomDepth(true);
+}
+
+void AQItem::DisableCustomDepth()
+{
+	ItemMeshComponent->SetRenderCustomDepth(false);
 }
 
 void AQItem::OnItemBeginOverlap( UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -290,5 +338,92 @@ void AQItem::CollectLerping(float deltaTime)
 	// 5. set scale
 	const float itemScale = ItemScaleCurve->GetFloatValue(elapsedTime);
 	SetActorScale3D(FVector(itemScale));
+}
+
+void AQItem::EnableGlowEffect()
+{
+	if (ItemMaterialDynamic)
+	{
+		ItemMaterialDynamic->SetScalarParameterValue(FName(TEXT("GlowEffectAlpha")), 5.0f);
+	}
+}
+
+void AQItem::DisableGlowEffect()
+{
+	if (ItemMaterialDynamic)
+	{
+		ItemMaterialDynamic->SetScalarParameterValue(FName(TEXT("GlowEffectAlpha")), 0.0f);
+	}
+}
+
+void AQItem::ResetDynamicGlowTimer_ToPickUp()
+{
+	if (EQItemState::EIS_ToPickUp == ItemState)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Reset DynamicGlowTime ToPickup"));
+		GetWorldTimerManager().SetTimer(
+			DynamicGlowTimerHandle_ToPickUp, this, &AQItem::ResetDynamicGlowTimer_ToPickUp, PulseCurveTime_ToPickUp, false);
+	}
+}
+
+
+
+void AQItem::ResetDynamicGlowTimer_Interping()
+{
+	if (EQItemState::EIS_EquipInterping == ItemState)
+	{
+		GetWorldTimerManager().SetTimer(
+			DynamicGlowTimerHandle_Interping, this, &AQItem::ResetDynamicGlowTimer_Interping, PulseCurveTime_Interping, false);
+	}
+}
+
+void AQItem::UpdateDynamicGlowParams(float DeltaTime)
+{
+	if (nullptr == ItemMaterialDynamic)
+	{
+		return;
+	}
+
+	float elapseTime; 
+	FVector glowEffectParams;
+	bool ifGlowParamsFinded = false;
+	if (EQItemState::EIS_ToPickUp == ItemState && GlowEffectCurve_ToPickUp)
+	{
+		elapseTime  = GetWorldTimerManager().GetTimerElapsed(DynamicGlowTimerHandle_ToPickUp);
+		glowEffectParams = GlowEffectCurve_ToPickUp->GetVectorValue(elapseTime);
+		ifGlowParamsFinded = true;
+	} else if (EQItemState::EIS_EquipInterping == ItemState && GlowEffectCurve_Interping)
+	{
+		elapseTime = GetWorldTimerManager().GetTimerElapsed(DynamicGlowTimerHandle_Interping);
+		glowEffectParams = GlowEffectCurve_Interping->GetVectorValue(elapseTime);
+		ifGlowParamsFinded = true;
+	}
+
+	if (ifGlowParamsFinded)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("Update Material"));
+		ItemMaterialDynamic->SetScalarParameterValue(
+			TEXT("GlowEffectAlpha"),
+			glowEffectParams.X * GlowEffectWeight); // curve的x参与glow effect weight
+		ItemMaterialDynamic->SetScalarParameterValue(
+			TEXT("FresnelExponent"),
+			glowEffectParams.Y * FresnelExponent); // curve的y参与fresenelExponent
+		ItemMaterialDynamic->SetScalarParameterValue(
+			TEXT("FresnelFraction"),
+			glowEffectParams.Z * FresnelReflectFraction); // curve的z参与FresnelReflectFraction
+	}
+
+}
+
+void AQItem::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	if (ItemMaterial)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("Update Material"));
+		ItemMaterialDynamic = UMaterialInstanceDynamic::Create(ItemMaterial, this);
+		ItemMeshComponent->SetMaterial(ItemMaterialIndex, ItemMaterialDynamic);
+	}
 }
 

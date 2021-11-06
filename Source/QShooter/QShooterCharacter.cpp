@@ -794,6 +794,8 @@ bool AQShooterCharacter::LineTraceFromCrosshair(FHitResult& hitResult)
 	GetWorld()->LineTraceSingleByChannel(hitResult, startLocation,
 		endLocation, ECollisionChannel::ECC_Visibility, FCollisionQueryParams::DefaultQueryParam);
 
+
+	//DrawDebugLine(GetWorld(), startLocation, endLocation, FColor::Red, false, 2.0f);
 	return hitResult.bBlockingHit;
 }
 

@@ -48,15 +48,25 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	void OnConstruction(const FTransform& Transform) override;
+
 	void ShowItem();
 	void ChangeToFalling();
 
 	void StartCollectLerping(class AQShooterCharacter* character);
 
 	FORCEINLINE USkeletalMeshComponent* GetItemMesh() const { return ItemMeshComponent; };
+
+	virtual void EnableCustomDepth();
+	virtual void DisableCustomDepth();
+
+
 protected:
+	/** 注意这个方法只在状态变化时调用不要重复调用 */
 	virtual void SetItemProperties(EQItemState targetItemState);
-	void SetItemState(EQItemState targetItemState);
+
+	/** 注意这里不仅仅是一个simple Setter的操作，还有setItemProperties,enable glow/disable glow等操作 */
+	void ConfigItemState(EQItemState targetItemState);
 
 private:
 	UFUNCTION()
@@ -73,6 +83,13 @@ private:
 	void EndCollectLerping();
 
 	void CollectLerping(float deltaTime);
+
+	void EnableGlowEffect();
+	void DisableGlowEffect();
+
+	void ResetDynamicGlowTimer_ToPickUp();
+	void ResetDynamicGlowTimer_Interping();
+	void UpdateDynamicGlowParams(float DeltaTime);
 protected:
 
 #pragma region Components
@@ -155,6 +172,46 @@ private:
 
 	/** collect popup动画时用的slot的cache,用-1表示为初始化的，因为0是有效的slot index */
 	int32 InterpSlotIndex = -1;
+
+
+#pragma region Params4Material
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	int32 ItemMaterialIndex = 0;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UMaterialInstanceDynamic* ItemMaterialDynamic = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UMaterialInstance* ItemMaterial = nullptr;
+
+	/** x,y,z 分别表示不同的意义，x表示glowEffectWeight, */
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	class UCurveVector* GlowEffectCurve_ToPickUp = nullptr;
+
+	/**  */
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UCurveVector* GlowEffectCurve_Interping = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float GlowEffectWeight = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float FresnelExponent = 3.0f;
+
+	UPROPERTY(EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float FresnelReflectFraction = 4.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float PulseCurveTime_ToPickUp = 5.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float PulseCurveTime_Interping = 0.7f;
+
+	FTimerHandle DynamicGlowTimerHandle_ToPickUp;
+	FTimerHandle DynamicGlowTimerHandle_Interping;
+#pragma endregion
+
+
 public:
 #pragma region GetterAndSetter
 	FORCEINLINE USoundCue* GetEquipSound() const { return EquipSound; }
@@ -162,5 +219,8 @@ public:
 	FORCEINLINE  int32 GetInterpSlotIndex() const { return InterpSlotIndex; }
 #pragma endregion
 
+
+
+	
 
 };
