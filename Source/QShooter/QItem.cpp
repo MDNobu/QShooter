@@ -54,7 +54,7 @@ void AQItem::BeginPlay()
 	}
 
 	DisableCustomDepth();
-	EnableGlowEffect();
+
 }
 
 // Called every frame
@@ -453,11 +453,63 @@ void AQItem::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
+
+
+
+#pragma region LoadItemRarityTable
+	FString tablePath(TEXT("DataTable'/Game/_Game/DataTable/DT_ItemRarity.DT_ItemRarity'"));
+	UDataTable* rarityTable = LoadObject<UDataTable>(nullptr, *tablePath);
+	if (rarityTable)
+	{
+		FItemRarityTableRow* rarityRow = nullptr;
+		switch (ItemRarity)
+		{
+		case EQItemRarity::EIR_Damaged:
+			rarityRow = rarityTable->FindRow<FItemRarityTableRow>(TEXT("Damaged"), TEXT(""), true);
+			break;
+		case EQItemRarity::EIR_Common:
+			rarityRow = rarityTable->FindRow<FItemRarityTableRow>(TEXT("Common"), TEXT(""), true);
+			break;
+		case EQItemRarity::EIR_UnCommon:
+			rarityRow = rarityTable->FindRow<FItemRarityTableRow>(TEXT("UnCommon"), TEXT(""), true);
+			break;
+		case EQItemRarity::EIR_Rare:
+			rarityRow = rarityTable->FindRow<FItemRarityTableRow>(TEXT("Rare"), TEXT(""), true);
+			break;
+		case EQItemRarity::EIR_Mythic:
+			rarityRow = rarityTable->FindRow<FItemRarityTableRow>(TEXT("Mythic"), TEXT(""), true);
+			break;
+		default:
+			//checkNoEntry();
+			UE_LOG(LogTemp, Error, TEXT("Item %s has a non legal rarity"), *GetName());
+			break;
+		}
+
+
+		if (rarityRow)
+		{
+			GlowColor = rarityRow->GlowColor;
+			LightColor = rarityRow->LightColor;
+			DarkColor = rarityRow->DarkColor;
+			NumOfStars = rarityRow->NumOfStars;
+			RarityImage = rarityRow->RarityImage;
+
+			if (ItemMeshComponent)
+			{
+				ItemMeshComponent->SetCustomDepthStencilValue(rarityRow->CustomDepthStencil);
+			}
+		}
+	}
+#pragma endregion
+
+
 	if (ItemMaterial)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("Update Material"));
 		ItemMaterialDynamic = UMaterialInstanceDynamic::Create(ItemMaterial, this);
 		ItemMeshComponent->SetMaterial(ItemMaterialIndex, ItemMaterialDynamic);
+		ItemMaterialDynamic->SetVectorParameterValue(TEXT("GlowColor"), GlowColor);
+		EnableGlowEffect();
 	}
 }
 

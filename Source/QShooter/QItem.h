@@ -15,21 +15,25 @@ struct FItemRarityTableRow : public FTableRowBase
 public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooterr")
-		FLinearColor GlowColor;
+	FLinearColor GlowColor;
 
 	/** item widget用的 light color */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooterr")
-		FLinearColor LightColor;
+	FLinearColor LightColor;
 
 	/** item widget用的 dark color */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooterr")
-		FLinearColor DarkColor;
+	FLinearColor DarkColor;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooterr")
-		int32 NumOfStars = 1;
+	int32 NumOfStars = 1;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooterr")
-		UTexture2D* RarityImage;
+	UTexture2D* RarityImage;
+
+	/** 这个会设置到mesh的customdepthstencil中，和PP material共同决定tint颜色 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooter", meta = (ClampMax = 255, ClampMin = 0, UIMax = 255, UIMin = 0))
+	int32 CustomDepthStencil;
 };
 
 
@@ -199,8 +203,8 @@ private:
 	/** collect popup动画时用的slot的cache,用-1表示为初始化的，因为0是有效的slot index */
 	int32 InterpSlotIndex = -1;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
-	UTexture2D* ItemBackground = nullptr;
+	/*UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UTexture2D* ItemBackground = nullptr;*/
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	UTexture2D* ItemIcon = nullptr;
@@ -246,6 +250,26 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	UDataTable* RarityDataTable = nullptr;
+
+#pragma region ParamsWithRarity
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Rarity", meta = (AllowPrivateAccess = true))
+	FLinearColor GlowColor;
+
+	/** item widget用的 light color */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Rarity", meta = (AllowPrivateAccess = true))
+	FLinearColor LightColor;
+
+	/** item widget用的 dark color */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Rarity", meta = (AllowPrivateAccess = true))
+	FLinearColor DarkColor;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Rarity", meta = (AllowPrivateAccess = true))
+	int32 NumOfStars = 1;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Rarity", meta = (AllowPrivateAccess = true))
+	UTexture2D* RarityImage;
+#pragma endregion
+
 
 public:
 #pragma region GetterAndSetter
