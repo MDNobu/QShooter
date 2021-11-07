@@ -4,7 +4,35 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Engine/DataTable.h"
 #include "QItem.generated.h"
+
+
+USTRUCT(BlueprintType)
+struct FItemRarityTableRow : public FTableRowBase
+{
+	GENERATED_BODY()
+public:
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooterr")
+		FLinearColor GlowColor;
+
+	/** item widget用的 light color */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooterr")
+		FLinearColor LightColor;
+
+	/** item widget用的 dark color */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooterr")
+		FLinearColor DarkColor;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooterr")
+		int32 NumOfStars = 1;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooterr")
+		UTexture2D* RarityImage;
+};
+
+
 
 UENUM(BlueprintType)
 enum class EQItemRarity : uint8
@@ -215,6 +243,9 @@ private:
 	FTimerHandle DynamicGlowTimerHandle_ToPickUp;
 	FTimerHandle DynamicGlowTimerHandle_Interping;
 #pragma endregion
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UDataTable* RarityDataTable = nullptr;
 
 public:
 #pragma region GetterAndSetter

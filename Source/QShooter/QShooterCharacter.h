@@ -20,6 +20,9 @@ enum class ECombatState : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipItemDelegate, int32, curSlotIndex, int32, newSlotIndex);
+/** bIsStart表示 开始动画还是停止动画， true == start , false == stop */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FHighlightInventorySlotDelegate, int32, slotIndex, bool, bIsStart);
+
 
 USTRUCT(BlueprintType)
 struct FInterpLocation
@@ -42,6 +45,7 @@ public:
 	int32 InterpNum;
 };
 
+
 UCLASS()
 class QSHOOTER_API AQShooterCharacter : public ACharacter
 {
@@ -60,12 +64,6 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-
-
-
-
-	
 
 public:	
 	// Called every frame
@@ -128,7 +126,8 @@ protected:
 
 	void EndFireBullet();
 
-
+	UFUNCTION(BlueprintPure, Category = "QShooter")
+	bool IsInventoryFull();
 private:
 
 #pragma region InputBinds
@@ -201,7 +200,7 @@ private:
 	int32 AddItemToInventory(AQItem* itemToDrop);
 	bool RemoveFromInventory(AQItem* itemToRemove);
 
-	bool IsInventoryFull();
+	
 
 	void SwapWeapon(AQWeapon* targetWeapon);
 
@@ -225,6 +224,7 @@ private:
 	void InitInterpLocations();
 
 	FInterpLocation GetItemCollectInterpLocation(int32 index);
+	void UpdateHighlightInventory();
 private:
 
 
@@ -365,6 +365,9 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	AQItem* FocusedItem = nullptr;
+	/** 前一帧focused item*/
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	AQItem* PreFocusedItem = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	TSubclassOf<AQWeapon> DefaulWeaponClass;
@@ -463,5 +466,11 @@ private:
 	/** 装备武器时inventory收到slot information的delegate */
 	UPROPERTY(BlueprintAssignable, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	FEquipItemDelegate EquipItemDelegate;
+
+	/** delegate to send slot information to inventory ui */
+	UPROPERTY(BlueprintAssignable, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	FHighlightInventorySlotDelegate InventorySlotHighlightDelegate;
+
+	int32 highlightingInventorySlotIndex = INDEX_NONE;
 #pragma endregion
 };

@@ -180,6 +180,31 @@ FInterpLocation AQShooterCharacter::GetItemCollectInterpLocation(int32 index)
 	return FInterpLocation();
 }
 
+void AQShooterCharacter::UpdateHighlightInventory()
+{
+	// &&
+	if (PreFocusedItem == FocusedItem) //只有当前帧和前一帧不同时，才可能hight/unlight
+	{
+		return;
+	}
+	if (Cast<AQWeapon>(FocusedItem))
+	{
+		//High light an availabe slot
+		int32 emptySlot = InventoryWeapons.Find(nullptr);
+		if (INDEX_NONE != emptySlot)
+		{
+			highlightingInventorySlotIndex = emptySlot;
+			InventorySlotHighlightDelegate.Broadcast(highlightingInventorySlotIndex, true);
+		}
+	}
+	else
+	{
+		// Unhighligt slot
+		InventorySlotHighlightDelegate.Broadcast(highlightingInventorySlotIndex, false);
+		highlightingInventorySlotIndex = -1;
+	}
+}
+
 float AQShooterCharacter::GetCrosshairSpeadMultiplier() const
 {
 	return CrosshairSpeadMultiplier;
@@ -325,6 +350,9 @@ void AQShooterCharacter::Tick(float DeltaTime)
 	LineTraceToShowItems();
 
 	UpdateCapsuleHalfHeight(DeltaTime);
+
+
+	UpdateHighlightInventory();
 }
 
 void AQShooterCharacter::UpdateCameraZoom(float deltaTime)
@@ -581,10 +609,12 @@ void AQShooterCharacter::FireOneBulletEffects()
 
 void AQShooterCharacter::ChangeEquipWeapon(int32 newWeaponInventIndex)
 {
+
 	if (CombatState != ECombatState::ECS_Unoccupied)
 	{
 		return;
 	}
+	bool inChangeableState = (CombatState == ECombatState::ECS_Unoccupied) || (CombatState == ECombatState::ECS_Equipping);
 	bool isNewIndexLegal = (newWeaponInventIndex >= 0) && (newWeaponInventIndex < InventoryWeapons.Num());
 	bool notSameWithEquiped = (InventoryWeapons[newWeaponInventIndex] != EquippedWeapon);
 		//EquippedWeapon && (EquippedWeapon->GetInventoryIndex() != newWeaponInventIndex);
@@ -915,10 +945,13 @@ void AQShooterCharacter::GenerateCrosshairPoints4LineTrace(OUT FVector& startPoi
 
 void AQShooterCharacter::LineTraceToShowItems()
 {
+	PreFocusedItem = FocusedItem;
+
 	// 没有overlap item则不需要line trace
 	if (OverlapItemCount <= 0)
 		return;
 
+	
 	//重置focus结果，trace有结果后赋值
 	FocusedItem = nullptr;
 
@@ -932,10 +965,6 @@ void AQShooterCharacter::LineTraceToShowItems()
 			FocusedItem = item;
 			item->ShowItem();
 		}
-		//if (AQWeapon* weapon = Cast<AQWeapon>(item))
-		//{
-		//	FocusedItem = weapon;
-		//}
 	}
 }
 
@@ -1055,9 +1084,13 @@ bool AQShooterCharacter::RemoveFromInventory(AQItem* itemToRemove)
 
 void AQShooterCharacter::DropItem(AQItem* itemToDrop)
 {
+	int32 itemIndex = itemToDrop->GetInventoryIndex();
 	bool removeSuccess = RemoveFromInventory(itemToDrop);
 	if (removeSuccess)
 	{
+		//broacast ui events
+		//EquipItemDelegate.Broadcast(itemIndex, -1); //用invdex_none -1作为newweapon index表示drop weapon
+
 		itemToDrop->ChangeToFalling();
 		itemToDrop->ThrowItem();
 	}
@@ -1098,10 +1131,10 @@ bool AQShooterCharacter::IsInventoryFull()
 
 void AQShooterCharacter::SwapWeapon(AQWeapon* targetWeapon)
 {
-	if (CombatState != ECombatState::ECS_Unoccupied)
-	{
-		return;
-	}
+	//if (CombatState != ECombatState::ECS_Unoccupied)
+	//{
+	//	return;
+	//}
 	if (targetWeapon &&
 		 (targetWeapon != EquippedWeapon))
 	{
