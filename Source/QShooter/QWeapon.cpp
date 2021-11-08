@@ -21,6 +21,45 @@ void AQWeapon::IncreaseAmmo(int32 ammoDelta)
 	AmmoAmount += ammoDelta;
 }
 
+void AQWeapon::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+#pragma region ReadParamFromDataTable
+	const FString tablePath(TEXT("DataTable'/Game/_Game/DataTable/DT_Weapon.DT_Weapon'"));
+	UDataTable* weaponTable = LoadObject<UDataTable>(nullptr, *tablePath);
+	if (weaponTable)
+	{
+		FWeaponDataTableRow* tableRow = nullptr;
+		switch (WeaponType)
+		{
+		case EWeaponType::EWT_SubmachineGun:
+			tableRow = weaponTable->FindRow<FWeaponDataTableRow>(TEXT("SubmachineGun"), TEXT(""));
+			break;
+		case EWeaponType::EWT_AssaultRifle:
+			tableRow = weaponTable->FindRow<FWeaponDataTableRow>(TEXT("AssaultRifle"), TEXT(""));
+			break;
+		default:
+			UE_LOG(LogTemp, Error, TEXT("weapon %s has a illegal type"), *GetName());
+			break;
+		}
+
+		if (tableRow)
+		{
+			AmmoType = tableRow->AmmoType;
+			AmmoAmount = tableRow->WeaponAmmo;
+			MagazineCapcity = tableRow->MagazineCapcity;
+			SetPickupSound(tableRow->PickupSound);
+			SetEquipSound(tableRow->EquipSound);
+			ItemMeshComponent->SetSkeletalMesh(tableRow->ItemMesh);
+			SetItemInventoryIcon(tableRow->InventoryIcon);
+			AmmoIcon = tableRow->AmmoIcon;
+			SetItemName(tableRow->ItemName);
+		}
+	}
+#pragma endregion
+
+}
+
 void AQWeapon::FireOneBullet()
 {
 	if (AmmoAmount <= 0)

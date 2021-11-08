@@ -150,7 +150,6 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	FString ItemName {TEXT("Default Gun") };
-
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true, ClampMax = 999.00, ClampMin = 0.00, UIMax = 999.00, UIMin = 0.00))
 	int32 ItemAmount = 60;
 
@@ -206,8 +205,9 @@ private:
 	/*UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	UTexture2D* ItemBackground = nullptr;*/
 
+	/** item在inventory中用的image */
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
-	UTexture2D* ItemIcon = nullptr;
+	UTexture2D* ItemInventoryIcon = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	int32 InventoryIndex = INDEX_NONE;
@@ -275,9 +275,13 @@ public:
 #pragma region GetterAndSetter
 	FORCEINLINE USoundCue* GetEquipSound() const { return EquipSound; }
 	FORCEINLINE int32 GetItemAmount() const { return ItemAmount; }
-	FORCEINLINE  int32 GetInterpSlotIndex() const { return InterpSlotIndex; }
+	FORCEINLINE int32 GetInterpSlotIndex() const { return InterpSlotIndex; }
 	FORCEINLINE int32 GetInventoryIndex() const { return InventoryIndex; }
-	void SetInventoryIndex(int32 val) { InventoryIndex = val; }
+	FORCEINLINE void SetInventoryIndex(int32 val) { InventoryIndex = val; }
+	FORCEINLINE void SetPickupSound(class USoundCue* val) { PickupSound = val; }
+	FORCEINLINE	void SetEquipSound(USoundCue* val) { EquipSound = val; }
+	FORCEINLINE void SetItemInventoryIcon(UTexture2D* val) { ItemInventoryIcon = val; }
+	FORCEINLINE void SetItemName(FString val) { ItemName = val; }
 #pragma endregion
 
 

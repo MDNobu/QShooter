@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "QItem.h"
 #include "AmmoType.h"
+#include "Engine/DataTable.h"
 #include "QWeapon.generated.h"
 
 UENUM(BlueprintType)
@@ -14,6 +15,40 @@ enum class EWeaponType : uint8
 	EWT_AssaultRifle UMETA(DisplayName = "AssaultRifle"),
 
 	EWT_MAX  UMETA(DisplayName = "MAX", Hidden)
+};
+
+
+USTRUCT(BlueprintType)
+struct FWeaponDataTableRow : public FTableRowBase
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	EAmmoType AmmoType = EAmmoType::EAT_9mm;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	int32 WeaponAmmo = 30;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	int32 MagazineCapcity = 30;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	class USoundCue* PickupSound;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	USoundCue* EquipSound;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	USkeletalMesh* ItemMesh;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FString ItemName;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UTexture2D* InventoryIcon;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UTexture2D* AmmoIcon;
 };
 
 /**
@@ -29,6 +64,9 @@ public:
 	
 	
 	void IncreaseAmmo(int32 ammoDelta);
+
+	void OnConstruction(const FTransform& Transform) override;
+
 public:
 
 	void SetToEquipped(class AQShooterCharacter* player);
@@ -84,6 +122,9 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	UTexture2D* AmmoIcon = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UDataTable* WeaponDataTable = nullptr;
 
 #pragma region GetterAndSetters
 public:
