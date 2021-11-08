@@ -54,6 +54,21 @@ void AQWeapon::OnConstruction(const FTransform& Transform)
 			SetItemInventoryIcon(tableRow->InventoryIcon);
 			AmmoIcon = tableRow->AmmoIcon;
 			SetItemName(tableRow->ItemName);
+			ClipName = tableRow->ClipName;
+			Reload_AM_SectionName = tableRow->ReloadAnimMontageSection;
+
+			ItemMeshComponent->SetAnimInstanceClass(tableRow->AnimBlueprintClass);
+
+			//Crosshair textures
+			CrosshairMiddleTex = tableRow->CrosshairMiddleTex;
+			CrosshairRightTex = tableRow->CrosshairRightTex;
+			CrosshairLeftTex = tableRow->CrosshairLeftTex;
+			CrosshairUpTex = tableRow->CrosshairUpTex;
+			CrosshairBottomTex = tableRow->CrosshairBottomTex;
+
+			AutoFireRate = tableRow->AutoFireRate;
+			MuzzleFlash = tableRow->MuzzleFlash;
+			FireSound = tableRow->FireSound;
 		}
 	}
 #pragma endregion

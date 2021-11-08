@@ -104,12 +104,11 @@ public:
 	void InsertClip();
 
 
-#pragma region GetAnSetters
+#pragma region GetterAnSetters
 	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
 	FORCEINLINE bool GetIsCrouching() const { return bIsCrouching; }
+	FORCEINLINE class AQWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
 #pragma endregion
-
-
 
 protected:
 #pragma region InputBinds
@@ -293,7 +292,6 @@ private:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	UAnimMontage* EquipWeaponMontage = nullptr;
 
-
 #pragma endregion
 
 
@@ -358,6 +356,7 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	AQWeapon* EquippedWeapon = nullptr;
+
 
 	/** 只是给inventory动画用的 */
 	int32 PreWeaponInventoryIndex = INDEX_NONE;

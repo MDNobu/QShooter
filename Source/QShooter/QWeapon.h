@@ -5,17 +5,11 @@
 #include "CoreMinimal.h"
 #include "QItem.h"
 #include "AmmoType.h"
+#include "WeaponType.h"
 #include "Engine/DataTable.h"
 #include "QWeapon.generated.h"
 
-UENUM(BlueprintType)
-enum class EWeaponType : uint8
-{
-	EWT_SubmachineGun UMETA(DisplayName = "SubmachineGun"),
-	EWT_AssaultRifle UMETA(DisplayName = "AssaultRifle"),
 
-	EWT_MAX  UMETA(DisplayName = "MAX", Hidden)
-};
 
 
 USTRUCT(BlueprintType)
@@ -49,6 +43,41 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UTexture2D* AmmoIcon;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FName ClipName;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FName ReloadAnimMontageSection;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TSubclassOf<UAnimInstance> AnimBlueprintClass;
+
+#pragma region CrosshairTextures
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UTexture2D* CrosshairMiddleTex;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UTexture2D* CrosshairRightTex;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UTexture2D* CrosshairLeftTex;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UTexture2D* CrosshairUpTex;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UTexture2D* CrosshairBottomTex;
+
+#pragma endregion
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float AutoFireRate = 60.0f/60.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	class UParticleSystem* MuzzleFlash;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	USoundCue* FireSound;
 };
 
 /**
@@ -114,9 +143,9 @@ private:
 	EAmmoType AmmoType = EAmmoType::EAT_9mm;
 
 	/** Animation section name in AnimMontage, different weapon may use different section name */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
-	FName EquipAnimName{ FName(TEXT("Reload_SMG")) };
-	
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	FName Reload_AM_SectionName{ FName(TEXT("Reload_SMG")) };
+
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	FName ClipName{ FName(TEXT("smg_clip")) };
 	
@@ -126,12 +155,43 @@ private:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	UDataTable* WeaponDataTable = nullptr;
 
+
+#pragma region CrosshairTextures
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UTexture2D* CrosshairMiddleTex;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UTexture2D* CrosshairRightTex;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UTexture2D* CrosshairLeftTex;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UTexture2D* CrosshairUpTex;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UTexture2D* CrosshairBottomTex;
+#pragma endregion
+
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float AutoFireRate = 60.0f / 60.0f;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	class UParticleSystem* MuzzleFlash;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USoundCue* FireSound;
+
+
+
 #pragma region GetterAndSetters
 public:
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; };
 	FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }
 	FORCEINLINE int32 GetAmmoAmount() const { return AmmoAmount; };
-	FORCEINLINE FName GetEquipAnimName() const { return EquipAnimName; }
+	FORCEINLINE	FName GetReload_AM_SectionName() const { return Reload_AM_SectionName; }
+	//FORCEINLINE FName GetEquipAnimName() const { return Reload_AM_SectionName; }
 	FORCEINLINE int32 GetMagazineCapcity() const { return MagazineCapcity; }
 
 	void SetAmmoAmount(int32 val) { AmmoAmount = val; }

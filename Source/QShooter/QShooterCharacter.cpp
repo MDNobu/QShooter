@@ -679,7 +679,8 @@ void AQShooterCharacter::StartReloadWeapon()
 		if (characterAnimInstance && ReloadAnimMontage)
 		{
 			characterAnimInstance->Montage_Play(ReloadAnimMontage);
-			characterAnimInstance->Montage_JumpToSection(TEXT("Reload_SMG"));
+			characterAnimInstance->Montage_JumpToSection(EquippedWeapon->GetReload_AM_SectionName());
+			//EquippedWeapon->reloa
 		}
 	}
 }

@@ -3,6 +3,7 @@
 
 #include "QShooterAnimInstance.h"
 #include "QShooterCharacter.h"
+#include "QWeapon.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -86,6 +87,17 @@ void UQShooterAnimInstance::UpdateAnimProperties(float deltatTime)
 	{
 		RecoilWeight = 0.5f;
 	} 
+#pragma endregion
+
+#pragma region UpdateWeaponType
+	AQWeapon* equipedWeapon = ShooterCharacterCache->GetEquippedWeapon();
+	if (equipedWeapon)
+	{
+		EquipedWeaponType = equipedWeapon->GetWeaponType();
+	}
+
+	bUseLHand_FARBRK = ShooterCharacterCache->GetCombatState() == ECombatState::ECS_Unoccupied ||
+		ShooterCharacterCache->GetCombatState() == ECombatState::ECS_FireInProgress;
 #pragma endregion
 }
 

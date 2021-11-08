@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "WeaponType.h"
 #include "QShooterAnimInstance.generated.h"
 
 /** AimOffset state 主要是为了表示当前动画aim offset的状态，以在ABP中用不同的动画 */
@@ -105,4 +106,10 @@ private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float RecoilWeight = 1.0f;
 
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	EWeaponType EquipedWeaponType = EWeaponType::EWT_SubmachineGun;
+
+	/** 是否用ik来使左手扶住枪 */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	bool bUseLHand_FARBRK = true;
 };
