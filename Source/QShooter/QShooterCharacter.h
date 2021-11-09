@@ -295,11 +295,11 @@ private:
 #pragma endregion
 
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
-	class USoundCue* FireSoundCue = nullptr;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	//class USoundCue* FireSoundCue = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
-	class UParticleSystem* MuzzleFlash = nullptr;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	//class UParticleSystem* MuzzleFlash = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class UAnimMontage* FireAnimMontage = nullptr;

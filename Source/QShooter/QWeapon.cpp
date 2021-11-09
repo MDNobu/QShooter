@@ -38,6 +38,9 @@ void AQWeapon::OnConstruction(const FTransform& Transform)
 		case EWeaponType::EWT_AssaultRifle:
 			tableRow = weaponTable->FindRow<FWeaponDataTableRow>(TEXT("AssaultRifle"), TEXT(""));
 			break;
+		case EWeaponType::EWT_Pistol:
+			tableRow = weaponTable->FindRow<FWeaponDataTableRow>(TEXT("Pistol"), TEXT(""));
+			break;
 		default:
 			UE_LOG(LogTemp, Error, TEXT("weapon %s has a illegal type"), *GetName());
 			break;
@@ -69,10 +72,23 @@ void AQWeapon::OnConstruction(const FTransform& Transform)
 			AutoFireRate = tableRow->AutoFireRate;
 			MuzzleFlash = tableRow->MuzzleFlash;
 			FireSound = tableRow->FireSound;
+			BoneToHide = tableRow->BoneToHide;
+
+			SetItemMaterial(tableRow->MaterialInstance);
+			SetItemMaterialIndex(tableRow->MaterialIndex);
+
+			bIsAutomatic = tableRow->IsAutomatic;
 		}
 	}
 #pragma endregion
 
+}
+
+void AQWeapon::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	UpdateSlideDisplacement();
 }
 
 void AQWeapon::FireOneBullet()
@@ -82,6 +98,12 @@ void AQWeapon::FireOneBullet()
 		return;
 	}
 	SetAmmoAmount(AmmoAmount- 1);
+	//bIsBulletFiring = true;
+	if (IsSlideMovable())
+	{
+		bIsMovingSlide = true;
+		GetWorldTimerManager().SetTimer(MoveSlideTimerHandle, this, &AQWeapon::FinishSlide, SlideMoveDuration, false);
+	}
 }
 
 bool AQWeapon::IsClipFull() const
@@ -99,6 +121,12 @@ void AQWeapon::BeginPlay()
 	Super::BeginPlay();
 
 	ensureMsgf(AmmoAmount <= MagazineCapcity, TEXT("AmmoAmount must be <= MagazineCapcity"));
+
+	//NAME_None
+	if (BoneToHide != FName(""))
+	{
+		ItemMeshComponent->HideBoneByName(BoneToHide, EPhysBodyOp::PBO_None);
+	}
 }
 
 void AQWeapon::SetToEquipped(AQShooterCharacter* player)
@@ -149,4 +177,26 @@ void AQWeapon::StopFalling()
 {
 	bIsFalling = false;
 	ConfigItemState(EQItemState::EIS_ToPickUp);
+}
+
+void AQWeapon::FinishSlide()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Finish move slide"));
+	bIsMovingSlide = false;
+}
+
+bool AQWeapon::IsSlideMovable() const
+{
+	return WeaponType == EWeaponType::EWT_Pistol;
+}
+
+void AQWeapon::UpdateSlideDisplacement()
+{
+	if (IsSlideMovable() && bIsMovingSlide && SlideDisplacmentCurve)
+	{
+		const float elapsedTime = GetWorldTimerManager().GetTimerElapsed(MoveSlideTimerHandle);
+		const float curveValue = SlideDisplacmentCurve->GetFloatValue(elapsedTime);
+		SlideDisplacement = curveValue * SlideDisplacementMAX;
+		RecoilRotation = curveValue * RecoilRotationMAX;
+	}
 }

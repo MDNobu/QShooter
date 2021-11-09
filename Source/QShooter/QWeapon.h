@@ -78,6 +78,20 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	USoundCue* FireSound;
+
+	/** 这一项存在是因为belicguns这样一个skeleton 里同时有SMG和pistol skeleton的情况 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FName BoneToHide;
+
+	/**  */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	int32 MaterialIndex = 0;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UMaterialInstance* MaterialInstance;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	bool IsAutomatic = false;
 };
 
 /**
@@ -96,6 +110,12 @@ public:
 
 	void OnConstruction(const FTransform& Transform) override;
 
+	
+
+
+	void Tick(float DeltaTime) override;
+
+	
 public:
 
 	void SetToEquipped(class AQShooterCharacter* player);
@@ -117,6 +137,11 @@ protected:
 
 private:
 	void StopFalling();
+
+	void FinishSlide();
+
+	bool IsSlideMovable() const;
+	void UpdateSlideDisplacement();
 private:
 
 	/** 装备当前weapon 的player */
@@ -156,6 +181,7 @@ private:
 	UDataTable* WeaponDataTable = nullptr;
 
 
+
 #pragma region CrosshairTextures
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	UTexture2D* CrosshairMiddleTex;
@@ -183,8 +209,34 @@ private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	USoundCue* FireSound;
 
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	FName BoneToHide;
 
+#pragma region Params4MoveSlide
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float SlideDisplacement = 0.0f;
 
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float RecoilRotation = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UCurveFloat* SlideDisplacmentCurve = nullptr;
+
+	FTimerHandle MoveSlideTimerHandle;
+
+	bool bIsMovingSlide = false;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float SlideMoveDuration = 0.1f;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float SlideDisplacementMAX = 15.0f;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float RecoilRotationMAX = 25.0f;
+#pragma endregion
+
+	bool bIsAutomatic = false;
 #pragma region GetterAndSetters
 public:
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; };
@@ -194,9 +246,14 @@ public:
 	//FORCEINLINE FName GetEquipAnimName() const { return Reload_AM_SectionName; }
 	FORCEINLINE int32 GetMagazineCapcity() const { return MagazineCapcity; }
 
-	void SetAmmoAmount(int32 val) { AmmoAmount = val; }
+	FORCEINLINE void SetAmmoAmount(int32 val) { AmmoAmount = val; }
 
 	FORCEINLINE FName GetClipName() const { return ClipName; }
+	FORCEINLINE float GetAutoFireRate() const { return AutoFireRate; }
+
+	FORCEINLINE UParticleSystem* GetMuzzleFlash() const { return MuzzleFlash; }
+	FORCEINLINE USoundCue* GetFireSound() const { return FireSound; }
+	FORCEINLINE bool IsAutomatic() const { return bIsAutomatic; }
 #pragma endregion
 
 };

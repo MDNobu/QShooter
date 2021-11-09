@@ -112,7 +112,7 @@ void AQShooterCharacter::BeginPlay()
 void AQShooterCharacter::AimButtonPressed()
 {
 	bIsAimButtonPressed = true;
-	if (CombatState != ECombatState::ECS_Reloading) //Reloading时不能aim
+	if (CombatState != ECombatState::ECS_Reloading && CombatState != ECombatState::ECS_Equipping) //Reloading时不能aim
 	{
 		StartAim();
 	}
@@ -562,18 +562,18 @@ void AQShooterCharacter::FireOneBulletEffects()
 		return;
 	}
 
-	if (FireSoundCue)
+	if (EquippedWeapon->GetFireSound())
 	{
-		UGameplayStatics::PlaySound2D(this, FireSoundCue);
+		UGameplayStatics::PlaySound2D(this, EquippedWeapon->GetFireSound());
 	}
 	
 	const USkeletalMeshSocket* barrelSocket = EquippedWeapon->GetItemMesh()->GetSocketByName(TEXT("BarrelSocket"));
 	if (barrelSocket)
 	{
 		const FTransform socketTransform = barrelSocket->GetSocketTransform(EquippedWeapon->GetItemMesh());
-		if (MuzzleFlash)
+		if (EquippedWeapon->GetMuzzleFlash())
 		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFlash, socketTransform);
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), socketTransform);
 		}
 #pragma region SpawnHitFXAndTrailFX
 		
@@ -622,6 +622,11 @@ void AQShooterCharacter::ChangeEquipWeapon(int32 newWeaponInventIndex)
 	{
 		if (AQWeapon* newWeapon = Cast<AQWeapon>(InventoryWeapons[newWeaponInventIndex]))
 		{
+			if (bIsAimming)
+			{
+				StopAim();
+			}
+
 			UE_LOG(LogTemp, Warning, TEXT("change to weapon in slot %d"), newWeaponInventIndex);
 			EquipWeapon(newWeapon);
 		}
@@ -725,6 +730,10 @@ void AQShooterCharacter::EndEquipping()
 {
 	UE_LOG(LogTemp, Warning, TEXT("End Equipping weapon"));
 	CombatState = ECombatState::ECS_Unoccupied;
+	if (bIsAimButtonPressed)
+	{
+		StartAim();
+	}
 }
 
 /**
@@ -1149,13 +1158,20 @@ void AQShooterCharacter::SwapWeapon(AQWeapon* targetWeapon)
 
 void AQShooterCharacter::FireButtonPressed()
 {
+	if (nullptr == EquippedWeapon)
+	{
+		return;
+	}
 	bIsFireButtonPressed = true;
 	TryFireWeapon();
 
-	// 启动一个timer来自动射击
-	// 这个timer用来处理auto fire的逻辑,要求autofireduration > fireDuration
-	GetWorld()->GetTimerManager().SetTimer(
-		AutoFireTimerHandle, this, &AQShooterCharacter::AutoFireCheckTimer, AutoFireDuration, true);
+	if (EquippedWeapon->IsAutomatic())
+	{
+		// 启动一个timer来自动射击
+		// 这个timer用来处理auto fire的逻辑,要求autofireduration > fireDuration
+		GetWorld()->GetTimerManager().SetTimer(
+			AutoFireTimerHandle, this, &AQShooterCharacter::AutoFireCheckTimer, EquippedWeapon->GetAutoFireRate(), true);
+	}
 }
 
 void AQShooterCharacter::FireButtonReleased()
@@ -1174,16 +1190,18 @@ void AQShooterCharacter::TryFireWeapon()
 		return;
 	}
 	
-	
 	if (EquippedWeapon->HasAmmo())
 	{
 		CombatState = ECombatState::ECS_FireInProgress;
 		FireOneBulletEffects();
 		EquippedWeapon->FireOneBullet();
+		bIsBulletFiring = true;
 
-		// 设置timer 调用end fire用来处理射击间隔
+
+		// 设置timer 调用end fire用来处理射击间隔，这个是枪的物理射速上限
 		GetWorld()->GetTimerManager().SetTimer(EndBulletFireTimerHandle, this, &AQShooterCharacter::EndFireBullet
 			, FireDuration, false);
+
 	}
 	else
 	{

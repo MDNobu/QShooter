@@ -282,6 +282,9 @@ public:
 	FORCEINLINE	void SetEquipSound(USoundCue* val) { EquipSound = val; }
 	FORCEINLINE void SetItemInventoryIcon(UTexture2D* val) { ItemInventoryIcon = val; }
 	FORCEINLINE void SetItemName(FString val) { ItemName = val; }
+	FORCEINLINE void SetItemMaterial(UMaterialInstance* val) { ItemMaterial = val; }
+	FORCEINLINE int32 GetItemMaterialIndex() const { return ItemMaterialIndex; }
+	FORCEINLINE void SetItemMaterialIndex(int32 val) { ItemMaterialIndex = val; }
 #pragma endregion
 
 

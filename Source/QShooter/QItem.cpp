@@ -506,7 +506,7 @@ void AQItem::OnConstruction(const FTransform& Transform)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("Update Material"));
 		ItemMaterialDynamic = UMaterialInstanceDynamic::Create(ItemMaterial, this);
-		ItemMeshComponent->SetMaterial(ItemMaterialIndex, ItemMaterialDynamic);
+		ItemMeshComponent->SetMaterial(GetItemMaterialIndex(), ItemMaterialDynamic);
 		ItemMaterialDynamic->SetVectorParameterValue(TEXT("GlowColor"), GlowColor);
 		EnableGlowEffect();
 	}
