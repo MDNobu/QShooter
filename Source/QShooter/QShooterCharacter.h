@@ -127,6 +127,9 @@ protected:
 
 	UFUNCTION(BlueprintPure, Category = "QShooter")
 	bool IsInventoryFull();
+
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	EPhysicalSurface LineTraceSurfaceType();
 private:
 
 #pragma region InputBinds
@@ -224,6 +227,7 @@ private:
 
 	FInterpLocation GetItemCollectInterpLocation(int32 index);
 	void UpdateHighlightInventory();
+	
 private:
 
 

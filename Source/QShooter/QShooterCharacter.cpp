@@ -16,6 +16,8 @@
 #include "QWeapon.h"
 #include "Components/CapsuleComponent.h"
 #include "QAmmo.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "QShooter.h"
 
 // Sets default values
 AQShooterCharacter::AQShooterCharacter()
@@ -205,6 +207,27 @@ void AQShooterCharacter::UpdateHighlightInventory()
 	}
 }
 
+EPhysicalSurface AQShooterCharacter::LineTraceSurfaceType()
+{
+	FHitResult hitResult;
+	FCollisionQueryParams queryParams;
+	queryParams.bReturnPhysicalMaterial = true;
+	const FVector startLocation = GetActorLocation();
+	const FVector endLocation = startLocation + FVector(0.0f, 0.0f, -200.0f);
+	GetWorld()->LineTraceSingleByChannel(hitResult, startLocation, endLocation, ECC_Visibility, queryParams);
+	if (hitResult.bBlockingHit)
+	{
+		
+		if (EPS_Grass == UPhysicalMaterial::DetermineSurfaceType(hitResult.PhysMaterial.Get()) )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("step on grass"));
+		}
+	}
+	
+
+	return UPhysicalMaterial::DetermineSurfaceType(hitResult.PhysMaterial.Get());
+}
+
 float AQShooterCharacter::GetCrosshairSpeadMultiplier() const
 {
 	return CrosshairSpeadMultiplier;
@@ -353,7 +376,10 @@ void AQShooterCharacter::Tick(float DeltaTime)
 
 
 	UpdateHighlightInventory();
+
+	//LineTraceFootstep();
 }
+
 
 void AQShooterCharacter::UpdateCameraZoom(float deltaTime)
 {
