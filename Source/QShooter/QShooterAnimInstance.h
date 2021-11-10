@@ -79,6 +79,8 @@ private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float CharacterYaw_TIP = 0;
 
+
+	/**  角色actor的 yaw和动画root的yaw的offset， 用于在角色turn in place时将动画root旋转 */
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float RootYawOffset = 0.0f;
 
