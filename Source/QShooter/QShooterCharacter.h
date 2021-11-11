@@ -172,7 +172,8 @@ private:
 	//void EndFireBullet();
 	void ChangeEquipWeapon(int32 newWeaponInventIndex);
 
-	bool CalBulletTrailEndPointAndIfHitSth(const FTransform& socketTransform, OUT FVector& bulletTrailEndPoint);
+	/** 进行两次linetrace， 一次从crosshair出发， 一次从barrel到第一次的终点， 结果取靠后的 */
+	bool LineTrace4Bullet(const FTransform& socketTransform, OUT FHitResult& bulletTrailEndPoint);
 	void UpdateCameraRotateRateByIsAimming();
 	
 	bool LineTraceFromCrosshair(FHitResult& hitResult);

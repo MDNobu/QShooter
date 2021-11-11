@@ -78,6 +78,9 @@ void AQWeapon::OnConstruction(const FTransform& Transform)
 			SetItemMaterialIndex(tableRow->MaterialIndex);
 
 			bIsAutomatic = tableRow->IsAutomatic;
+
+			Damage = tableRow->Damage;
+			HeadshotDamage = tableRow->HeadshotDamage;
 		}
 	}
 #pragma endregion

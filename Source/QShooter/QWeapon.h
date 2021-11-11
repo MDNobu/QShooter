@@ -92,6 +92,12 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	bool IsAutomatic = false;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float Damage = 0.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float HeadshotDamage = 0.0f;
 };
 
 /**
@@ -116,6 +122,7 @@ public:
 	void Tick(float DeltaTime) override;
 
 	
+
 public:
 
 	void SetToEquipped(class AQShooterCharacter* player);
@@ -237,6 +244,16 @@ private:
 #pragma endregion
 
 	bool bIsAutomatic = false;
+
+	/** 每一枪的伤害 */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float Damage = 0.0f;
+
+	/** 爆头时每一枪的伤害 */
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float HeadshotDamage = 0.0f;
+
+
 #pragma region GetterAndSetters
 public:
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; };
@@ -254,6 +271,8 @@ public:
 	FORCEINLINE UParticleSystem* GetMuzzleFlash() const { return MuzzleFlash; }
 	FORCEINLINE USoundCue* GetFireSound() const { return FireSound; }
 	FORCEINLINE bool IsAutomatic() const { return bIsAutomatic; }
+	FORCEINLINE float GetDamage() const { return Damage; }
+	FORCEINLINE float GetHeadshotDamage() const { return HeadshotDamage; }
 #pragma endregion
 
 };

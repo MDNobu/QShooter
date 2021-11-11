@@ -18,6 +18,8 @@
 #include "QAmmo.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "QShooter.h"
+#include "QBulletHitInterface.h"
+#include "QEnemy.h"
 
 // Sets default values
 AQShooterCharacter::AQShooterCharacter()
@@ -596,32 +598,71 @@ void AQShooterCharacter::FireOneBulletEffects()
 	const USkeletalMeshSocket* barrelSocket = EquippedWeapon->GetItemMesh()->GetSocketByName(TEXT("BarrelSocket"));
 	if (barrelSocket)
 	{
-		const FTransform socketTransform = barrelSocket->GetSocketTransform(EquippedWeapon->GetItemMesh());
+		const FTransform barrelSSocketTransform = barrelSocket->GetSocketTransform(EquippedWeapon->GetItemMesh());
 		if (EquippedWeapon->GetMuzzleFlash())
 		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), socketTransform);
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), barrelSSocketTransform);
 		}
-#pragma region SpawnHitFXAndTrailFX
-		
+
 
 		//计算bulletTrailEndPoint
 		// 需要line trace 两次，一次以crosshair为起点，一次以barrel socket为起点
-		FVector bulletTrailEndPoint;
-		bool bBulletHitSomething = CalBulletTrailEndPointAndIfHitSth(socketTransform, bulletTrailEndPoint);
+		//FVector bulletTrailEndPoint;
+		FHitResult hitResult4Bullet;
+		LineTrace4Bullet(barrelSSocketTransform, hitResult4Bullet);
 
-		if (ImpactHitFX && bBulletHitSomething)
+#pragma region SpawnHitFXAndTrailFX
+
+
+		if (hitResult4Bullet.bBlockingHit)
 		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactHitFX, bulletTrailEndPoint);
-		}
+			// 击中粒子特效
+			if (IQBulletHitInterface* bulletHitable = Cast<IQBulletHitInterface>(hitResult4Bullet.Actor.Get()))
+			{
+				//击中bulletHitInterface，由接口处理
+				//bulletHitable->BulletHit(hitResult4Bullet);
+				bulletHitable->BulletHit_Implementation(hitResult4Bullet);
+			}
+			else if (ImpactHitFX)  // 否则spawn 默认粒子
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactHitFX, hitResult4Bullet.Location);
+			}
 
-		if (BulletTrailFX)
-		{
-			UParticleSystemComponent* bulletParticleCom =
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BulletTrailFX, socketTransform);
 
-			bulletParticleCom->SetVectorParameter(FName(TEXT("Target")), bulletTrailEndPoint);
+			// trail特效
+			if (BulletTrailFX)
+			{
+				UParticleSystemComponent* bulletParticleCom =
+					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BulletTrailFX, barrelSSocketTransform);
+
+				bulletParticleCom->SetVectorParameter(FName(TEXT("Target")), hitResult4Bullet.Location);
+			}
+
+
+			//Damage处理
+			if (AQEnemy* enemy = Cast<AQEnemy>(hitResult4Bullet.Actor.Get()))
+			{
+				const bool isHeadshot = enemy->GetHeadBoneName().IsEqual(hitResult4Bullet.BoneName);
+				const float damage = isHeadshot ? EquippedWeapon->GetHeadshotDamage() : EquippedWeapon->GetDamage();
+
+				UGameplayStatics::ApplyDamage(
+					enemy, 
+					damage,
+					GetController(), 
+					this, 
+					UDamageType::StaticClass());
+
+				UE_LOG(LogTemp, Warning,
+					TEXT("hitted bone name is %s, is headshot %d"),
+					*hitResult4Bullet.BoneName.ToString(),
+					isHeadshot);
+			
+				enemy->ShowHitNumber(damage, hitResult4Bullet.Location, isHeadshot);
+			}
 		}
 #pragma endregion
+
+
 	}
 
 	UAnimInstance* characterAnimInstance = GetMesh()->GetAnimInstance();
@@ -885,41 +926,50 @@ void AQShooterCharacter::StartAim()
 	GetCharacterMovement()->MaxWalkSpeed = CrouchMaxWalkSpeed; // 这里只是想要一个比BaseSpeed小的数值，用CrouchMaxSpeed是图方便
 }
 
-bool AQShooterCharacter::CalBulletTrailEndPointAndIfHitSth(const FTransform& socketTransform, OUT FVector& bulletTrailEndPoint)
+
+bool AQShooterCharacter::LineTrace4Bullet(const FTransform& socketTransform, OUT FHitResult& bulletTrailEndPoint)
 {
+	
+	//FVector bulletTrailEndPoint;
+
 	FVector startLocation;
 	FVector endLocation;
 	GenerateCrosshairPoints4LineTrace(startLocation, endLocation);
 
 	//计算bulletTrailEndPoint
 	// 需要line trace 两次，一次以crosshair为起点，一次以barrel socket为起点
-	bulletTrailEndPoint = endLocation;
-	bool bBulletHitSomething = false;
 
-	FHitResult fireHitRes;
-	GetWorld()->LineTraceSingleByChannel(fireHitRes, startLocation,
+	FHitResult hitResFromCrosshair;
+	GetWorld()->LineTraceSingleByChannel(hitResFromCrosshair, startLocation,
 		endLocation, ECollisionChannel::ECC_Visibility, FCollisionQueryParams::DefaultQueryParam);
 
-	if (fireHitRes.bBlockingHit)
-	{
-		bulletTrailEndPoint = fireHitRes.Location;
-		bBulletHitSomething = true;
-	}
 
-	if (bBulletHitSomething) //第一次line trace碰到东西才进行第二次
+	FHitResult returnHitResult;
+	if (hitResFromCrosshair.bBlockingHit)
 	{
-		FHitResult bulletHitRes;
-		GetWorld()->LineTraceSingleByChannel(bulletHitRes,
+		//bulletTrailEndPoint = hitResFromCrosshair.Location;
+		returnHitResult = hitResFromCrosshair;
+
+		//第一次line trace碰到东西才进行第二次
+		FHitResult hitResFromBarret;
+		GetWorld()->LineTraceSingleByChannel(hitResFromBarret,
 			socketTransform.GetLocation(),
-			bulletTrailEndPoint,
+			hitResFromCrosshair.Location,
 			ECollisionChannel::ECC_Visibility);
-		if (bulletHitRes.bBlockingHit)
+		if (hitResFromBarret.bBlockingHit)
 		{
-			bulletTrailEndPoint = bulletHitRes.Location;
+			//bulletTrailEndPoint = hitResFromBarret.Location;
+			returnHitResult = hitResFromBarret;
 		}
 	}
+	bulletTrailEndPoint = returnHitResult;
 
-	return bBulletHitSomething;
+	//if (bBulletHitSomething) 
+	//{
+	//	
+	//}
+
+	return returnHitResult.bBlockingHit;
 }
 
 void AQShooterCharacter::UpdateCameraRotateRateByIsAimming()
