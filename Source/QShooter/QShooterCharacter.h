@@ -61,6 +61,10 @@ public:
 
 	void Jump() override;
 
+
+	float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -104,11 +108,7 @@ public:
 	void InsertClip();
 
 
-#pragma region GetterAnSetters
-	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
-	FORCEINLINE bool GetIsCrouching() const { return bIsCrouching; }
-	FORCEINLINE class AQWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
-#pragma endregion
+
 
 protected:
 #pragma region InputBinds
@@ -230,13 +230,16 @@ private:
 	void UpdateHighlightInventory();
 	
 private:
-
-
+#pragma region Components
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = true))
 	class USpringArmComponent* CameraBoom = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = true, ClampMax = 12.00))
 	class UCameraComponent* FollowCamera = nullptr;
+
+#pragma endregion
+
+
 
 #pragma region Keyboard CameraRotateRateParams
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
@@ -318,6 +321,10 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	UParticleSystem* BulletTrailFX = nullptr;
 
+	/** ÎäÆ÷colliderÅöµ½playerÊ±µÄsound */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	class USoundCue* ImpactSoundCue = nullptr;
+
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float CameraZoomInFOV = 45.0f;
 
@@ -396,6 +403,14 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	ECombatState CombatState = ECombatState::ECS_Unoccupied;
+
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float Health = 100.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float MaxHealth = 100.0f;
+
 
 #pragma region VariableForMoveClip
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
@@ -476,5 +491,14 @@ private:
 	FHighlightInventorySlotDelegate InventorySlotHighlightDelegate;
 
 	int32 highlightingInventorySlotIndex = INDEX_NONE;
+#pragma endregion
+
+public:
+#pragma region GetterAnSetters
+	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
+	FORCEINLINE bool GetIsCrouching() const { return bIsCrouching; }
+	FORCEINLINE class AQWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
+
+	FORCEINLINE USoundCue* GetImpactSoundCue() const { return ImpactSoundCue; }
 #pragma endregion
 };

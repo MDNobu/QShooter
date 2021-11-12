@@ -90,6 +90,26 @@ void AQShooterCharacter::Jump()
 	}
 }
 
+float AQShooterCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	float damageTaked = 0.0f;
+	if (Health - Damage <= 0)
+	{
+		damageTaked = Health;
+		Health = 0;
+		// #TODO Die
+	}
+	else
+	{
+		Health -= Damage;
+		damageTaked = Damage;
+	}
+
+	return damageTaked;
+}
+
 // Called when the game starts or when spawned
 void AQShooterCharacter::BeginPlay()
 {

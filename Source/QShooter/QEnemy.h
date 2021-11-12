@@ -17,8 +17,6 @@ public:
 	AQEnemy();
 
 
-
-
 	float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "QShooter")
@@ -31,6 +29,24 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "QShooter")
 	void ShowHitNumber(int32 damage, FVector demageLocation, bool bIsHeadshot);
+	
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void PlayAttackMontage(FName attackSectionName, float playRate = 1.0f);
+
+	UFUNCTION(BlueprintPure, Category = "QShooter")
+	FName SelectAttackSectionName() const;
+
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void ActivateLeftWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void DeactivateLeftWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void ActivateRightWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void DeactivateRightWeapon();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -47,7 +63,26 @@ public:
 
 	UFUNCTION()
 	void DestroyHitNumberWidget(UUserWidget* widget);
+
+	/** 注意，这个set 不是一个simple setter */
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void SetIsStunning(bool isStunning);
+
+	/** 注意，这个set 不是一个simple setter */
+	void SetIsInCombatRange(bool isInCombatRange);
 private:
+
+	UFUNCTION()
+	void OnLeftWeaponBoxBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	void CheckAndDoDamaget2ShooterCharacter(AActor* OtherActor);
+
+	UFUNCTION()
+	void OnRightWeaponBoxBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	void Die();
 
@@ -56,7 +91,65 @@ private:
 	void ResetHitDelay();
 	
 	void UpdateHitNumberWidgets();
+
+
+	UFUNCTION()
+	void OnAggroSphereBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnCombatRangeSphereBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnCombatRangeSphereEndOverlap(
+		UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex
+		);
+
 private:
+#pragma region Components
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	class USphereComponent* AggroSphere = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	USphereComponent* CombatRangeSphere = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	class UBoxComponent* LeftWeaponCollisionBox = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UBoxComponent* RightWeaponCollisionBox = nullptr;
+#pragma endregion
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	bool bIsInCombatRange = false;
+
+	
+
+#pragma region Params4AI
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	class UBehaviorTree* BehaviorTree;
+
+	/**  注意MakedEditWidget会使该location变成local space */
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true, MakeEditWidget))
+	FVector PatrolPointLS;
+
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true, MakeEditWidget))
+	FVector PatrolPoint2LS;
+
+	/** Controller Cache */
+	UPROPERTY(VisibleAnywhere, Category = "QShooter")
+	class AQEnemyController* EnemyController = nullptr;
+#pragma endregion
+
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	bool bIsStunning = false;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true, ClampMax = 1.00, ClampMin = 0.00, UIMax = 1.00, UIMin = 0.00))
+	float StunChance = 0.5f;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class UParticleSystem* ImpactFX = nullptr;
@@ -70,6 +163,10 @@ private:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float MaxHealth = 100.0f;
 
+	/** 一次武器击中造成的伤害 */
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float BaseDamage = 20.0f;
+
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	FName HeadBoneName{ TEXT("head") };
 	
@@ -79,6 +176,26 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class UAnimMontage* HitAnimMontage = nullptr;
+
+#pragma region AttackAnimParams
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UAnimMontage* AttackAnimMontage = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	FName AttackLFast_SectionName{ TEXT("AttackLFast") };
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	FName AttackRFast_SectionName {TEXT("AttackRFast")};
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	FName AttackL_SectionName{ TEXT("AttackL") };
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	FName AttackR_SectionName{ TEXT("AttackR") };
+#pragma endregion
+
+
+	
 
 	FTimerHandle HealthBarShowTimerHandle;
 #pragma region Params4HitNumber
@@ -117,5 +234,7 @@ public:
 	FORCEINLINE float GetHealth() const { return Health; }
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	FORCEINLINE FName GetHeadBoneName() const { return HeadBoneName; }
+
+	FORCEINLINE UBehaviorTree* GetBehaviorTree() const { return BehaviorTree; }
 #pragma endregion
 };
