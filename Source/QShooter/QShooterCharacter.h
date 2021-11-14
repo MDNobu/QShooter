@@ -15,6 +15,7 @@ enum class ECombatState : uint8
 	ECS_FireInProgress UMETA(DisplayName = "FireInProgress"), // 正在射击的状态，只能到unoccupied
 	ECS_Reloading UMETA(DisplayName = "Reloading"),  //正在reload, 只能到unoccupied
 	ECS_Equipping UMETA(DisplayName = "Equiping"),
+	ECS_Stunned UMETA(DisplayName = "Stunned"),
 
 	ECS_MAX  UMETA(DisplayName = "MAX", Hidden)
 };
@@ -23,6 +24,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipItemDelegate, int32, curSlotI
 /** bIsStart表示 开始动画还是停止动画， true == start , false == stop */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FHighlightInventorySlotDelegate, int32, slotIndex, bool, bIsStart);
 
+DECLARE_MULTICAST_DELEGATE(FCharacterDieDelegate);
 
 USTRUCT(BlueprintType)
 struct FInterpLocation
@@ -65,6 +67,7 @@ public:
 	float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -107,9 +110,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "QShooter")
 	void InsertClip();
 
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void EndStun();
 
+	void TryStun();
 
-
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void FinishDeath();
 protected:
 #pragma region InputBinds
 	void FireButtonPressed();
@@ -228,7 +235,12 @@ private:
 
 	FInterpLocation GetItemCollectInterpLocation(int32 index);
 	void UpdateHighlightInventory();
+
+	void Die();
+public:
 	
+	FCharacterDieDelegate OnPlayerCharacterDie;
+
 private:
 #pragma region Components
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = true))
@@ -411,6 +423,12 @@ private:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	float MaxHealth = 100.0f;
 
+	/** 角色受到伤害 stun的概率 */
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float StunChance = 0.1f;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UAnimMontage* HitReactMongtage = nullptr;
 
 #pragma region VariableForMoveClip
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
@@ -493,6 +511,16 @@ private:
 	int32 highlightingInventorySlotIndex = INDEX_NONE;
 #pragma endregion
 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UParticleSystem* BloodParticle = nullptr;
+
+#pragma region DyingParamas
+	bool bIsDead = false;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UAnimMontage* DeathMontage = nullptr;
+#pragma endregion
+
 public:
 #pragma region GetterAnSetters
 	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
@@ -500,5 +528,7 @@ public:
 	FORCEINLINE class AQWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
 
 	FORCEINLINE USoundCue* GetImpactSoundCue() const { return ImpactSoundCue; }
+	FORCEINLINE UParticleSystem* GetBloodParticle() const { return BloodParticle; }
 #pragma endregion
+
 };

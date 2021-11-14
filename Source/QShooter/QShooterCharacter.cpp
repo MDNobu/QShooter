@@ -99,7 +99,8 @@ float AQShooterCharacter::TakeDamage(float Damage, struct FDamageEvent const& Da
 	{
 		damageTaked = Health;
 		Health = 0;
-		// #TODO Die
+
+		Die();
 	}
 	else
 	{
@@ -136,7 +137,10 @@ void AQShooterCharacter::BeginPlay()
 void AQShooterCharacter::AimButtonPressed()
 {
 	bIsAimButtonPressed = true;
-	if (CombatState != ECombatState::ECS_Reloading && CombatState != ECombatState::ECS_Equipping) //Reloading时不能aim
+	bool bAble2Aim = (CombatState != ECombatState::ECS_Reloading) &&
+		(CombatState != ECombatState::ECS_Equipping) &&
+		(CombatState != ECombatState::ECS_Stunned);
+	if (bAble2Aim) 
 	{
 		StartAim();
 	}
@@ -227,6 +231,24 @@ void AQShooterCharacter::UpdateHighlightInventory()
 		InventorySlotHighlightDelegate.Broadcast(highlightingInventorySlotIndex, false);
 		highlightingInventorySlotIndex = -1;
 	}
+}
+
+void AQShooterCharacter::Die()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+	bIsDead = true;
+	
+	UAnimInstance* animInst = GetMesh()->GetAnimInstance();
+	if (animInst && DeathMontage)
+	{
+		animInst->Montage_Play(DeathMontage);
+		//UE_LOG(LogTemp, Warning, TEXT("player character start dying"));
+	}
+
+	OnPlayerCharacterDie.Broadcast();
 }
 
 EPhysicalSurface AQShooterCharacter::LineTraceSurfaceType()
@@ -725,7 +747,7 @@ void AQShooterCharacter::EndFireBullet()
 {
 	bIsBulletFiring = false;
 	CombatState = ECombatState::ECS_Unoccupied;
-	UE_LOG(LogTemp, Warning, TEXT("End Firing"));
+	//UE_LOG(LogTemp, Warning, TEXT("End Firing"));
 }
 
 void AQShooterCharacter::SelectButtonPressed()
@@ -756,7 +778,7 @@ bool AQShooterCharacter::DoesEquippedWeaponHasAmmo()
 
 void AQShooterCharacter::StartReloadWeapon()
 {
-	if (ECombatState::ECS_Unoccupied != GetCombatState())
+	if (ECombatState::ECS_Unoccupied != CombatState)
 		return;
 
 	if (HasSuitableAmmoPack() && !EquippedWeapon->IsClipFull()) //没有ammo pack，则不能reload
@@ -779,6 +801,10 @@ void AQShooterCharacter::StartReloadWeapon()
 
 void AQShooterCharacter::EndReloadWeapon()
 {
+	if (ECombatState::ECS_Stunned == CombatState)
+	{
+		return;
+	}
 	CombatState = ECombatState::ECS_Unoccupied;
 
 	
@@ -815,7 +841,10 @@ void AQShooterCharacter::EndReloadWeapon()
 
 void AQShooterCharacter::EndEquipping()
 {
-	UE_LOG(LogTemp, Warning, TEXT("End Equipping weapon"));
+	if (ECombatState::ECS_Stunned == CombatState)
+	{
+		return;
+	}
 	CombatState = ECombatState::ECS_Unoccupied;
 	if (bIsAimButtonPressed)
 	{
@@ -856,6 +885,41 @@ void AQShooterCharacter::InsertClip()
 	bIsClipMoving = false;
 }
 
+
+void AQShooterCharacter::EndStun()
+{
+	CombatState = ECombatState::ECS_Unoccupied;
+}
+
+void AQShooterCharacter::TryStun()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	const float chanceNum = FMath::RandRange(0.0f, 1.0f);
+	bool shouldStun = chanceNum < StunChance;
+	if (shouldStun && HitReactMongtage)
+	{
+		if (UAnimInstance* animInst = GetMesh()->GetAnimInstance())
+		{
+			animInst->Montage_Play(HitReactMongtage);
+		}
+	}
+}
+
+void AQShooterCharacter::FinishDeath()
+{
+	GetMesh()->bPauseAnims = true;
+	APlayerController* pc = UGameplayStatics::GetPlayerController(this, 0);
+	if (pc)
+	{
+		DisableInput(pc);
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("player character finish dying"));
+}
 
 void AQShooterCharacter::ReloadButtonPressed()
 {
@@ -1084,11 +1148,6 @@ void AQShooterCharacter::SpawnAndEquipDefaultWeapon()
 	}
 }
 
-//void AQShooterCharacter::EquipWeapon(AQWeapon* newWeapon)
-//{
-//	AQWeapon* preWeapon = EquippedWeapon;
-//	EquipWeapon(preWeapon, newWeapon);
-//}
 
 void AQShooterCharacter::EquipWeapon( AQWeapon* newWeapon)
 {

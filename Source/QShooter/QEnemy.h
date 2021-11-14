@@ -30,6 +30,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "QShooter")
 	void ShowHitNumber(int32 damage, FVector demageLocation, bool bIsHeadshot);
 	
+	/**  注意这个函数虽然叫play attack montage，但不止包括表现的意义，相当于attack */
 	UFUNCTION(BlueprintCallable, Category = "QShooter")
 	void PlayAttackMontage(FName attackSectionName, float playRate = 1.0f);
 
@@ -47,6 +48,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "QShooter")
 	void DeactivateRightWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void FinishDeath();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -77,7 +81,9 @@ private:
 		UPrimitiveComponent* OverlappedComponent,
 		AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-	void CheckAndDoDamaget2ShooterCharacter(AActor* OtherActor);
+	void PlayBloodFX(class AQShooterCharacter* playerCharacter, FName socketName);
+
+	void DoDamaget2Character(AQShooterCharacter* OtherActor);
 
 	UFUNCTION()
 	void OnRightWeaponBoxBeginOverlap(
@@ -108,6 +114,14 @@ private:
 		UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex
 		);
 
+	void DestoryEnemy();
+
+	void EnableAttack();
+
+	void SetCanAttackInBlackboard(bool canAttack);
+
+	UFUNCTION()
+	void OnPlayerCharacterDie();
 private:
 #pragma region Components
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
@@ -145,6 +159,8 @@ private:
 	class AQEnemyController* EnemyController = nullptr;
 #pragma endregion
 
+
+
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	bool bIsStunning = false;
 
@@ -176,6 +192,16 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class UAnimMontage* HitAnimMontage = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UAnimMontage* DeathAnimMontage = nullptr;
+
+	bool bIsDying = false;
+
+	FTimerHandle DeathDestoryTimer;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float DestroyTimeAfterDie = 3.0f;
 
 #pragma region AttackAnimParams
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
@@ -228,6 +254,12 @@ private:
 	bool bCanPlayHitMontage = true;
 #pragma endregion
 
+	bool bCanAttack = true;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float AttackCD = 3.0f;
+
+	FTimerHandle AttackCDTimer;
 public:
 
 #pragma region GetterAndSetters

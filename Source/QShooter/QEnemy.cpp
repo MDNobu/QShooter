@@ -14,6 +14,8 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
 #include "QShooterCharacter.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 // Sets default values
 AQEnemy::AQEnemy()
@@ -33,17 +35,7 @@ AQEnemy::AQEnemy()
 	RightWeaponCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("RightWeaponCollisionBox"));
 	RightWeaponCollisionBox->SetupAttachment(GetMesh(), TEXT("RightWeaponSocket"));
 
-#pragma region InitBoxCollision
-	LeftWeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	LeftWeaponCollisionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
-	LeftWeaponCollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-	LeftWeaponCollisionBox->SetCollisionObjectType(ECC_WorldDynamic);
 
-	RightWeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	RightWeaponCollisionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
-	RightWeaponCollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-	RightWeaponCollisionBox->SetCollisionObjectType(ECC_WorldDynamic);
-#pragma endregion InitBoxCollision
 }
 
 
@@ -64,6 +56,11 @@ float AQEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageE
 		Health -= DamageAmount;
 	}
 
+
+	if (AQShooterCharacter* playerCharacter = Cast<AQShooterCharacter>(DamageCauser))
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsObject(TEXT("Target"), playerCharacter);
+	}
 	return damageTaked;
 }
 
@@ -107,6 +104,17 @@ void AQEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 
+#pragma region SetupBoxCollision
+	LeftWeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LeftWeaponCollisionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	LeftWeaponCollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	LeftWeaponCollisionBox->SetCollisionObjectType(ECC_WorldDynamic);
+
+	RightWeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RightWeaponCollisionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	RightWeaponCollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	RightWeaponCollisionBox->SetCollisionObjectType(ECC_WorldDynamic);
+#pragma endregion InitBoxCollision
 
 	AggroSphere->OnComponentBeginOverlap.AddDynamic(this, &AQEnemy::OnAggroSphereBeginOverlap);
 	CombatRangeSphere->OnComponentBeginOverlap.AddDynamic(this, &AQEnemy::OnCombatRangeSphereBeginOverlap);
@@ -132,8 +140,11 @@ void AQEnemy::BeginPlay()
 	EnemyController = Cast<AQEnemyController>(GetController());
 	if (EnemyController)
 	{
+		//Init BB values
 		EnemyController->GetBlackboardComponent()->SetValueAsVector(TEXT("PatrolPoint"), patroPointWS);
 		EnemyController->GetBlackboardComponent()->SetValueAsVector(TEXT("PatrolPoint2"), patrollPoint2WS);
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(TEXT("IsDied"), false);
+		SetCanAttackInBlackboard(true);
 
 		EnemyController->RunBehaviorTree(BehaviorTree);
 	}
@@ -179,35 +190,102 @@ void AQEnemy::StoreHitNumberLocation(UUserWidget* widget, FVector location)
 	GetWorldTimerManager().SetTimer(hitNumberDestroyTimer, timerDelegate, HitNumberWidgetShowTime, false);
 }
 
-void AQEnemy::OnLeftWeaponBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AQEnemy::DoDamaget2Character(AQShooterCharacter* playerCharacter)
 {
-	
-	CheckAndDoDamaget2ShooterCharacter(OtherActor);
+	if (nullptr == playerCharacter)
+	{
+		return;
+	}
+	//UE_LOG(LogTemp, Warning, TEXT("LeftWeapon Begin Overlap"));
+
+	UGameplayStatics::ApplyDamage(playerCharacter, BaseDamage, GetController(), this, UDamageType::StaticClass());
+
+	if (playerCharacter->GetImpactSoundCue())
+	{
+		//UGameplayStatics::PlaySound2D(this, playerCharacter->GetImpactSoundCue(), 0.30f);
+		UGameplayStatics::PlaySoundAtLocation(this, playerCharacter->GetImpactSoundCue(), GetActorLocation(), 0.3f);
+	}
+
+	playerCharacter->TryStun();
 }
 
-void AQEnemy::CheckAndDoDamaget2ShooterCharacter(AActor* OtherActor)
+void AQEnemy::PlayBloodFX(AQShooterCharacter* playerCharacter, FName socketName)
 {
-	UE_LOG(LogTemp, Warning, TEXT("LeftWeapon Begin Overlap"));
-	if (AQShooterCharacter* playerCharacter = Cast<AQShooterCharacter>(OtherActor))
+	if (playerCharacter && playerCharacter->GetBloodParticle())
 	{
-		UGameplayStatics::ApplyDamage(playerCharacter, BaseDamage, GetController(), this, UDamageType::StaticClass());
-
-		if (playerCharacter->GetImpactSoundCue())
+		//这里用weapon socket的位置来spawn socket
+		const USkeletalMeshSocket* socket4Blood = GetMesh()->GetSocketByName(socketName);
+		if (socket4Blood)
 		{
-			//UGameplayStatics::PlaySound2D(this, playerCharacter->GetImpactSoundCue(), 0.30f);
-			UGameplayStatics::PlaySoundAtLocation(this, playerCharacter->GetImpactSoundCue(), GetActorLocation(), 0.3f);
+			FTransform weaponBloodSocket_Transform = socket4Blood->GetSocketTransform(GetMesh());
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), playerCharacter->GetBloodParticle(), weaponBloodSocket_Transform, true);
+		}
+		else
+		{
+			UE_LOG(
+				LogTemp,
+				Warning,
+				TEXT("%s do not have a socket %s, please check"), *GetName(), *socketName.ToString());
 		}
 	}
 }
 
+void AQEnemy::OnLeftWeaponBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (AQShooterCharacter* playerCharacter = Cast<AQShooterCharacter>(OtherActor))
+	{
+		DoDamaget2Character(playerCharacter);
+		PlayBloodFX(playerCharacter, TEXT("FX_Trail_L_01"));
+	}
+}
+
+
+
 void AQEnemy::OnRightWeaponBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	CheckAndDoDamaget2ShooterCharacter(OtherActor);
+	if (AQShooterCharacter* playerCharacter = Cast<AQShooterCharacter>(OtherActor))
+	{
+		DoDamaget2Character(playerCharacter);
+		PlayBloodFX(playerCharacter, TEXT("FX_Trail_R_01"));
+	}
 }
+
+
+
+
 
 void AQEnemy::Die()
 {
+	if (bIsDying)
+	{
+		return;
+	}
+	bIsDying = true;
+
 	HideHealthBar();
+
+	// Play death montage
+	if (DeathAnimMontage)
+	{
+		UAnimInstance* animInst = GetMesh()->GetAnimInstance();
+		if (animInst)
+		{
+			animInst->Montage_Play(DeathAnimMontage, 1.0f);
+		}
+	}
+
+	// set is death in BB
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(TEXT("IsDied"), true);
+		
+		EnemyController->StopMovement();
+	}
+
+	// disable collision
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+
 }
 
 void AQEnemy::PlayHitMontage(FName hitSectionName, float playRate /*= 1.0f*/)
@@ -228,11 +306,17 @@ void AQEnemy::PlayHitMontage(FName hitSectionName, float playRate /*= 1.0f*/)
 
 void AQEnemy::PlayAttackMontage(FName attackSectionName, float playRate /*= 1.0f*/)
 {
+	
 	UAnimInstance* animInst = GetMesh()->GetAnimInstance();
 	if (animInst && AttackAnimMontage)
 	{
 		animInst->Montage_Play(AttackAnimMontage, playRate);
 		animInst->Montage_JumpToSection(attackSectionName);
+
+		//bCanAttack = false;
+		SetCanAttackInBlackboard(false);
+		UE_LOG(LogTemp, Warning, TEXT("Set can attack value %d"), bCanAttack);
+		GetWorldTimerManager().SetTimer(AttackCDTimer, this, &AQEnemy::EnableAttack, AttackCD, false);
 	}
 }
 
@@ -279,6 +363,13 @@ void AQEnemy::DeactivateRightWeapon()
 	RightWeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
+void AQEnemy::FinishDeath()
+{
+	//bIsDying = false;
+	GetMesh()->bPauseAnims = true;
+	GetWorldTimerManager().SetTimer(DeathDestoryTimer, this, &AQEnemy::DestoryEnemy, DestroyTimeAfterDie, false);
+}
+
 void AQEnemy::ResetHitDelay()
 {
 	bCanPlayHitMontage = true;
@@ -305,6 +396,9 @@ void AQEnemy::OnAggroSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent
 	if (AQShooterCharacter* playerCharacter = Cast<AQShooterCharacter>(OtherActor))
 	{
 		EnemyController->GetBlackboardComponent()->SetValueAsObject(TEXT("Target"), playerCharacter);
+
+		//playerCharacter->OnPlayerCharacterDie.Add()
+		playerCharacter->OnPlayerCharacterDie.AddUObject(this, &AQEnemy::OnPlayerCharacterDie);
 	}
 }
 
@@ -322,6 +416,35 @@ void AQEnemy::OnCombatRangeSphereEndOverlap(UPrimitiveComponent* OverlappedCompo
 	{
 		SetIsInCombatRange(false);
 	}
+}
+
+void AQEnemy::DestoryEnemy()
+{
+	Destroy();
+}
+
+void AQEnemy::EnableAttack()
+{
+	//bCanAttack = true;
+	SetCanAttackInBlackboard(true);
+}
+
+void AQEnemy::SetCanAttackInBlackboard(bool canAttack)
+{
+	bCanAttack = canAttack;
+	//UE_LOG(LogTemp, Warning, TEXT("Set can attack value %b"), canAttack);
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(TEXT("CanAttack"), bCanAttack);
+	}
+}
+
+void AQEnemy::OnPlayerCharacterDie()
+{
+	EnemyController->GetBlackboardComponent()->SetValueAsObject(TEXT("Target"), nullptr);
+	//playerCharacter->OnPlayerCharacterDie.Add()
+	//playerCharacter->OnPlayerCharacterDie.AddUObject(this, &AQEnemy::OnPlayerCharacterDie);
+	UE_LOG(LogTemp, Warning, TEXT("%s OnPlayerCharacter Die"), *GetName());
 }
 
 void AQEnemy::DestroyHitNumberWidget(UUserWidget* widget)
