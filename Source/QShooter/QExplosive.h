@@ -25,9 +25,18 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 public:
-	void BulletHit_Implementation(FHitResult hitResult) override;
+	void BulletHit_Implementation(FHitResult hitResult, AActor* Shooter, AController* ShooterController) override;
 
 private:
+
+#pragma region Components
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UStaticMeshComponent* ExplosiveMesh = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	class USphereComponent* DamageSphere = nullptr;
+#pragma endregion
+
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class UParticleSystem* ExlpodeParticle = nullptr;
@@ -35,4 +44,6 @@ private:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	class USoundCue* ExplodeSound = nullptr;
 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	float BaseDamage = 100.0f;
 };

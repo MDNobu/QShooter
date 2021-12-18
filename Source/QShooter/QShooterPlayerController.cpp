@@ -27,3 +27,18 @@ void AQShooterPlayerController::BeginPlay()
 #pragma endregion
 
 }
+
+void AQShooterPlayerController::SetHUDVisible(bool visible)
+{
+	if (HUDOverlay)
+	{
+		if (visible)
+		{
+			HUDOverlay->AddToViewport();
+		}
+		else
+		{
+			HUDOverlay->RemoveFromParent();
+		}
+	}
+}

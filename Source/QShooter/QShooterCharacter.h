@@ -517,7 +517,7 @@ private:
 #pragma region DyingParamas
 	bool bIsDead = false;
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "QShooter", meta = (AllowPrivateAccess = true))
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "QShooter", meta = (AllowPrivateAccess = true))
 	UAnimMontage* DeathMontage = nullptr;
 #pragma endregion
 

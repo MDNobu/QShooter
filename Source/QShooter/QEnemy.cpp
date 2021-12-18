@@ -56,10 +56,21 @@ float AQEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageE
 		Health -= DamageAmount;
 	}
 
+	ShowHealthBar();
+	bool isStunned = FMath::RandRange(0.0f, 1.0f) < StunChance;
+	if (isStunned)
+	{
+		PlayHitMontage(TEXT("HitReactFront"));
+		//bIsStunning = isStunned;
+		SetIsStunning(true);
+	}
 
 	if (AQShooterCharacter* playerCharacter = Cast<AQShooterCharacter>(DamageCauser))
 	{
-		EnemyController->GetBlackboardComponent()->SetValueAsObject(TEXT("Target"), playerCharacter);
+		if (EnemyController)
+		{
+			EnemyController->GetBlackboardComponent()->SetValueAsObject(TEXT("Target"), playerCharacter);
+		}
 	}
 	return damageTaked;
 }
@@ -72,7 +83,7 @@ void AQEnemy::ShowHealthBar_Implementation()
 
 
 
-void AQEnemy::BulletHit_Implementation(FHitResult hitResult)
+void AQEnemy::BulletHit_Implementation(FHitResult hitResult, AActor* Shooter, AController* ShooterController)
 {
 	if (ImpactFX)
 	{
@@ -86,9 +97,8 @@ void AQEnemy::BulletHit_Implementation(FHitResult hitResult)
 		UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, GetActorLocation());
 	}
 
-	ShowHealthBar();
-	
 
+	ShowHealthBar();
 	bool isStunned = FMath::RandRange(0.0f, 1.0f) < StunChance;
 	if (isStunned)
 	{
@@ -285,7 +295,7 @@ void AQEnemy::Die()
 	// disable collision
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-
+	BP_OnDie();
 }
 
 void AQEnemy::PlayHitMontage(FName hitSectionName, float playRate /*= 1.0f*/)
@@ -395,10 +405,13 @@ void AQEnemy::OnAggroSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent
 {
 	if (AQShooterCharacter* playerCharacter = Cast<AQShooterCharacter>(OtherActor))
 	{
-		EnemyController->GetBlackboardComponent()->SetValueAsObject(TEXT("Target"), playerCharacter);
+		if (EnemyController && EnemyController->GetBlackboardComponent())
+		{
+			EnemyController->GetBlackboardComponent()->SetValueAsObject(TEXT("Target"), playerCharacter);
 
-		//playerCharacter->OnPlayerCharacterDie.Add()
-		playerCharacter->OnPlayerCharacterDie.AddUObject(this, &AQEnemy::OnPlayerCharacterDie);
+
+			playerCharacter->OnPlayerCharacterDie.AddUObject(this, &AQEnemy::OnPlayerCharacterDie);
+		}
 	}
 }
 

@@ -21,7 +21,7 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, Category = "QShooter")
 	void ShowHealthBar();
-	void BulletHit_Implementation(FHitResult hitResult) override;
+	void BulletHit_Implementation(FHitResult hitResult, AActor* Shooter, AController* ShooterController) override;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "QShooter")
 	void HideHealthBar();
@@ -51,6 +51,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "QShooter")
 	void FinishDeath();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "QShooter", meta = (DisplayName = "OnDie"))
+	void BP_OnDie();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

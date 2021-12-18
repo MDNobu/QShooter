@@ -16,8 +16,15 @@ class QSHOOTER_API AQShooterPlayerController : public APlayerController
 public:
 	AQShooterPlayerController();
 
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "QShooter")
+	void OnPlayerDie();
+
+	UFUNCTION(BlueprintCallable, Category = "QShooter")
+	void SetHUDVisible(bool visible);
 protected:
 	void BeginPlay() override;
+
 
 private:
 

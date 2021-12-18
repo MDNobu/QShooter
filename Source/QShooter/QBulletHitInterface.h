@@ -24,5 +24,5 @@ class QSHOOTER_API IQBulletHitInterface
 public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "QShooter")
-	void BulletHit(FHitResult hitResult);
+	void BulletHit(FHitResult hitResult, AActor* Shooter, AController* ShooterController);
 };

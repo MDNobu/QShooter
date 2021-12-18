@@ -20,6 +20,7 @@
 #include "QShooter.h"
 #include "QBulletHitInterface.h"
 #include "QEnemy.h"
+#include "QShooterPlayerController.h"
 
 // Sets default values
 AQShooterCharacter::AQShooterCharacter()
@@ -245,10 +246,15 @@ void AQShooterCharacter::Die()
 	if (animInst && DeathMontage)
 	{
 		animInst->Montage_Play(DeathMontage);
-		//UE_LOG(LogTemp, Warning, TEXT("player character start dying"));
+		UE_LOG(LogTemp, Warning, TEXT("player character start dying, montage : %s"), *DeathMontage->GetFName().ToString());
 	}
 
 	OnPlayerCharacterDie.Broadcast();
+
+	if (AQShooterPlayerController* shooterPC = Cast<AQShooterPlayerController>(GetController()))
+	{
+		shooterPC->OnPlayerDie();
+	}
 }
 
 EPhysicalSurface AQShooterCharacter::LineTraceSurfaceType()
@@ -663,7 +669,7 @@ void AQShooterCharacter::FireOneBulletEffects()
 			{
 				//击中bulletHitInterface，由接口处理
 				//bulletHitable->BulletHit(hitResult4Bullet);
-				bulletHitable->BulletHit_Implementation(hitResult4Bullet);
+				bulletHitable->BulletHit_Implementation(hitResult4Bullet, this, GetController());
 			}
 			else if (ImpactHitFX)  // 否则spawn 默认粒子
 			{
@@ -997,11 +1003,11 @@ void AQShooterCharacter::UpdateCapsuleHalfHeight(float DeltaTime)
 	const FVector deltaVector = FVector(0.0f, 0.0f, -deltaHalfHeight); 
 	GetMesh()->AddLocalOffset(deltaVector);
 
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(1, -1, FColor::Red,
-			FString::Printf(TEXT("delta z: %f"), deltaHalfHeight));
-	}
+	//if (GEngine)
+	//{
+	//	GEngine->AddOnScreenDebugMessage(1, -1, FColor::Red,
+	//		FString::Printf(TEXT("delta z: %f"), deltaHalfHeight));
+	//}
 }
 
 void AQShooterCharacter::StartAim()
